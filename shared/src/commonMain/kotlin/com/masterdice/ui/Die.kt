@@ -5,9 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -18,11 +16,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.masterdice.game.Die
 
 private val PIP_POSITIONS: Map<Int, List<Pair<Float, Float>>> = mapOf(
@@ -34,7 +29,7 @@ private val PIP_POSITIONS: Map<Int, List<Pair<Float, Float>>> = mapOf(
     6 to listOf(0.32f to 0.24f, 0.68f to 0.24f, 0.32f to 0.5f, 0.68f to 0.5f, 0.32f to 0.76f, 0.68f to 0.76f),
 )
 
-/** A single die face: coloured rounded square, pips, and a colour-initial label. */
+/** A single die face: coloured rounded square with sunken pips and gloss. */
 @Composable
 fun DieView(
     die: Die,
@@ -106,16 +101,5 @@ fun DieView(
                 )
             }
         }
-        BasicText(
-            text = colourInitial(die.colour),
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .graphicsLayer { translationX = -size.toPx() * 0.08f; translationY = size.toPx() * 0.05f },
-            style = TextStyle(
-                color = pips.copy(alpha = 0.85f),
-                fontSize = (size.value * 0.22f).sp,
-                fontWeight = FontWeight.Bold,
-            ),
-        )
     }
 }

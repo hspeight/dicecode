@@ -5,7 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.graphics.toAwtImage
 import com.masterdice.game.Die
@@ -120,5 +122,17 @@ class ScreenshotTest {
     @Test
     fun captureLost() = runComposeUiTest {
         capture(lostState(), "lost.png")
+    }
+
+    @Test
+    fun captureHelp() = runComposeUiTest {
+        var s by mutableStateOf(midGameState())
+        setContent {
+            GameScreen(state = s, onIntent = { s = reduce(s, it) }, onNewGame = {})
+        }
+        onNodeWithTag("help").performClick()
+        waitForIdle()
+        onNodeWithTag("helpPanel").fetchSemanticsNode()
+        ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", File(tmpDir(), "help.png"))
     }
 }

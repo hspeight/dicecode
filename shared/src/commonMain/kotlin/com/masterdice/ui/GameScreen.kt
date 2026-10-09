@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -26,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -87,6 +89,7 @@ fun GameScreen(
     // Rows whose feedback is already revealed. Seeded with the restored guess
     // count so only guesses submitted during this session animate in.
     var revealedRows by remember { mutableIntStateOf(state.guesses.size) }
+    var showHelp by remember { mutableStateOf(false) }
     val reveal = remember { Animatable(1f) }
     LaunchedEffect(state.guesses.size) {
         if (state.guesses.size > revealedRows) {
@@ -122,16 +125,26 @@ fun GameScreen(
                 .padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BasicText(
-                text = "Master Dice",
-                style = TextStyle(
-                    color = MasterDiceColors.Ivory,
-                    fontSize = 22.sp,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.SemiBold,
-                ),
-                modifier = Modifier.padding(vertical = 8.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+            ) {
+                BasicText(
+                    text = "Master Dice",
+                    style = TextStyle(
+                        color = MasterDiceColors.Ivory,
+                        fontSize = 22.sp,
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    modifier = Modifier.align(Alignment.Center),
+                )
+                HelpButton(
+                    onClick = { showHelp = true },
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                )
+            }
 
             HeaderRow(state, cell, dieSize, gap)
 
@@ -161,6 +174,120 @@ fun GameScreen(
         }
 
         DragOverlay(dd, dieSize)
+
+        if (showHelp) {
+            HelpPanel(onDismiss = { showHelp = false })
+        }
+    }
+}
+
+@Composable
+private fun HelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(32.dp)
+            .testTag("help")
+            .semantics { contentDescription = "Show game rules" }
+            .clip(RoundedCornerShape(50))
+            .background(MasterDiceColors.Brass.copy(alpha = 0.25f))
+            .border(1.dp, MasterDiceColors.Brass.copy(alpha = 0.6f), RoundedCornerShape(50))
+            .pointerInput(Unit) { detectTapGestures { onClick() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            text = "?",
+            style = TextStyle(
+                color = MasterDiceColors.Brass,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("helpPanel")
+            .background(MasterDiceColors.Board.copy(alpha = 0.82f))
+            .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 32.dp)
+                .clip(WellShape)
+                .background(MasterDiceColors.Board)
+                .border(1.dp, MasterDiceColors.Brass, WellShape)
+                .padding(20.dp)
+                // Swallow taps on the card itself so it doesn't dismiss.
+                .pointerInput(Unit) { detectTapGestures { } },
+        ) {
+            BasicText(
+                text = "How to play",
+                style = TextStyle(
+                    color = MasterDiceColors.Ivory,
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+            Spacer(Modifier.height(12.dp))
+            RuleText("Three dice hide in the brass tiles. The tray holds those three plus one decoy — work out which three belong, and in what order.")
+            Spacer(Modifier.height(8.dp))
+            RuleText("Drag dice from the tray into the row, then tap the check mark. You have $ROWS guesses.")
+            Spacer(Modifier.height(12.dp))
+            RuleLine("✓", MasterDiceColors.GreenBorder, "Colour and value match that column's hidden die")
+            RuleLine("~", MasterDiceColors.AmberBorder, "Colour or value matches — not both")
+            RuleLine("·", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
+            Spacer(Modifier.height(16.dp))
+            BasicText(
+                text = "Got it",
+                style = TextStyle(
+                    color = MasterDiceColors.Board,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .semantics { contentDescription = "Close rules" }
+                    .clip(WellShape)
+                    .background(MasterDiceColors.Brass)
+                    .pointerInput(Unit) { detectTapGestures { onDismiss() } }
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun RuleText(text: String) {
+    BasicText(
+        text = text,
+        style = TextStyle(
+            color = MasterDiceColors.Ivory.copy(alpha = 0.85f),
+            fontSize = 14.sp,
+        ),
+    )
+}
+
+@Composable
+private fun RuleLine(marker: String, color: androidx.compose.ui.graphics.Color, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        BasicText(
+            text = marker,
+            style = TextStyle(color = color, fontSize = 15.sp, fontWeight = FontWeight.Bold),
+            modifier = Modifier.width(20.dp),
+        )
+        BasicText(
+            text = text,
+            style = TextStyle(
+                color = MasterDiceColors.Ivory.copy(alpha = 0.85f),
+                fontSize = 14.sp,
+            ),
+        )
     }
 }
 

@@ -71,15 +71,6 @@ fun pipColour(colour: DieColour): Color = when (colour) {
     else -> MasterDiceColors.Ivory
 }
 
-fun colourInitial(colour: DieColour): String = when (colour) {
-    DieColour.RED -> "R"
-    DieColour.BLUE -> "B"
-    DieColour.GREEN -> "G"
-    DieColour.YELLOW -> "Y"
-    DieColour.PURPLE -> "P"
-    DieColour.ORANGE -> "O"
-}
-
 fun colourName(colour: DieColour): String = when (colour) {
     DieColour.RED -> "Red"
     DieColour.BLUE -> "Blue"
