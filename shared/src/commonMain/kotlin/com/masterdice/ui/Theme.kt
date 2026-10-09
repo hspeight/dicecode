@@ -29,10 +29,6 @@ object MasterDiceColors {
     val SocketEmptyMid = Color(0xFF0C2327)
     val SocketEmptyDeep = Color(0xFF071719)
 
-    // Brass mystery tile.
-    val TileEdge = Color(0xFF785A0D)
-    val TileGlyph = Color(0xFF4A3208)
-
     // Walnut tray.
     val TrayTop = Color(0xFF57361E)
     val TrayBottom = Color(0xFF54341B)
@@ -47,14 +43,6 @@ object MasterDiceColors {
     val EnterMid = Color(0xFFFB8C00)
     val EnterDark = Color(0xFFE65100)
     val EnterEdge = Color(0xFFFFE082)
-
-    /** Brass tile gradient: 145° (#F3D98A → #C9A227 → #967414 → #6C5209). */
-    val BrassTileStops: Array<Pair<Float, Color>> = arrayOf(
-        0f to Color(0xFFF3D98A),
-        0.45f to Color(0xFFC9A227),
-        0.85f to Color(0xFF967414),
-        1f to Color(0xFF6C5209),
-    )
 }
 
 fun dieColour(colour: DieColour): Color = when (colour) {

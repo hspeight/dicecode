@@ -112,8 +112,8 @@ fun GameScreen(
         val maxBoardWidth = if (maxWidth > 480.dp) 480.dp else maxWidth
         val gap = 6.dp
         val widthCell = (maxBoardWidth - 16.dp - gap * (TRAY_SIZE - 1)) / TRAY_SIZE
-        // 12 cell-rows (header + 10 grid + tray) plus title and spacing.
-        val heightCell = (maxHeight - 96.dp - gap * 13) / 12f
+        // 11 cell-rows (10 grid + tray) plus title and spacing.
+        val heightCell = (maxHeight - 96.dp - gap * 12) / 11f
         val cell = if (widthCell < heightCell) widthCell else heightCell
         val dieSize = cell * 0.82f
 
@@ -144,8 +144,6 @@ fun GameScreen(
                     modifier = Modifier.align(Alignment.CenterEnd),
                 )
             }
-
-            HeaderRow(state, cell, dieSize, gap)
 
             Box {
                 Column(verticalArrangement = Arrangement.spacedBy(gap)) {
@@ -234,7 +232,7 @@ private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(onDismiss: () 
                 ),
             )
             Spacer(Modifier.height(12.dp))
-            RuleText("Three dice hide in the brass tiles. The tray holds those three plus one decoy — work out which three belong, and in what order.")
+            RuleText("A hidden sequence of three dice is the solution. The tray holds those three plus one decoy — work out which three belong, and in what order.")
             Spacer(Modifier.height(8.dp))
             RuleText("Drag dice from the tray into the row, then tap the check mark. You have $ROWS guesses.")
             Spacer(Modifier.height(12.dp))
@@ -287,44 +285,6 @@ private fun RuleLine(marker: String, color: androidx.compose.ui.graphics.Color, 
                 fontSize = 14.sp,
             ),
         )
-    }
-}
-
-@Composable
-private fun HeaderRow(state: GameState, cell: Dp, dieSize: Dp, gap: Dp) {
-    Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
-        for (col in 0 until GUESS_SIZE) {
-            val revealed = state.status != GameStatus.PLAYING
-            val die = state.solution[col]
-            Box(
-                modifier = Modifier
-                    .size(cell)
-                    .testTag("header-$col")
-                    .semantics {
-                        contentDescription =
-                            if (revealed) "Column ${col + 1} hidden die: ${colourName(die.colour)} ${die.value}"
-                            else "Hidden die"
-                    }
-                    .shadow(4.dp, WellShape, clip = false)
-                    .drawBehind { drawBrassTile() }
-                    .border(1.dp, MasterDiceColors.TileEdge, WellShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (revealed) {
-                    DieView(die, dieSize)
-                } else {
-                    BasicText(
-                        text = "?",
-                        style = TextStyle(
-                            color = MasterDiceColors.TileGlyph,
-                            fontSize = (cell.value * 0.45f).sp,
-                            fontWeight = FontWeight.Bold,
-                        ),
-                    )
-                }
-            }
-        }
-        Spacer(Modifier.size(cell))
     }
 }
 
@@ -693,6 +653,33 @@ private fun EndPanel(state: GameState, onNewGame: () -> Unit, modifier: Modifier
                     fontWeight = FontWeight.Bold,
                 ),
             )
+            if (state.status == GameStatus.LOST) {
+                Spacer(Modifier.height(4.dp))
+                BasicText(
+                    text = "The dice were",
+                    style = TextStyle(
+                        color = MasterDiceColors.Ivory.copy(alpha = 0.6f),
+                        fontSize = 13.sp,
+                    ),
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.semantics {
+                    contentDescription = "Solution: " + state.solution.joinToString(", ") {
+                        "${colourName(it.colour)} ${it.value}"
+                    }
+                },
+            ) {
+                state.solution.forEachIndexed { col, die ->
+                    DieView(
+                        die = die,
+                        size = 44.dp,
+                        modifier = Modifier.testTag("solution-$col"),
+                    )
+                }
+            }
             Spacer(Modifier.height(16.dp))
             Box(
                 modifier = Modifier
@@ -879,45 +866,6 @@ private fun DrawScope.drawSocket(
                     floatArrayOf(4.dp.toPx(), 3.dp.toPx()),
                 ),
             ),
-        )
-    }
-}
-
-/**
- * Brass mystery tile (CSS .brass-tile): 145° brass gradient with a bevel —
- * bright inner lip on top, dark inner shadow on the bottom.
- */
-private fun DrawScope.drawBrassTile() {
-    val w = size.width
-    val h = size.height
-    val corner = CornerRadius(10.dp.toPx())
-
-    // CSS 145deg sweeps from the upper-left toward the lower-right.
-    drawRoundRect(
-        brush = Brush.linearGradient(
-            colorStops = MasterDiceColors.BrassTileStops,
-            start = Offset(0f, 0f),
-            end = Offset(w, h),
-        ),
-        cornerRadius = corner,
-    )
-    clipPath(roundRectPath(size, corner)) {
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(Color.White.copy(alpha = 0.7f), Color.Transparent),
-                startY = 0f,
-                endY = 1.5.dp.toPx(),
-            ),
-            size = Size(w, 1.5.dp.toPx()),
-        )
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)),
-                startY = h - 3.dp.toPx(),
-                endY = h,
-            ),
-            topLeft = Offset(0f, h - 3.dp.toPx()),
-            size = Size(w, 3.dp.toPx()),
         )
     }
 }
