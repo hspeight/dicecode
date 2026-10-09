@@ -11,9 +11,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -58,15 +61,48 @@ fun DieView(
                         end = Offset(this.size.width, this.size.height),
                     )
                 )
+                // Specular gloss (CSS .dice-cube::before): a bright band over
+                // the top 38% of the face, inset slightly from the sides.
+                val insetX = 2.dp.toPx()
+                val glossTop = 1.dp.toPx()
+                val glossHeight = this.size.height * 0.38f
+                drawRoundRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.45f),
+                            Color.White.copy(alpha = 0.05f),
+                        ),
+                        startY = glossTop,
+                        endY = glossTop + glossHeight,
+                    ),
+                    topLeft = Offset(insetX, glossTop),
+                    size = Size(this.size.width - insetX * 2, glossHeight),
+                    cornerRadius = CornerRadius(this.size.minDimension * 0.14f),
+                )
             },
     ) {
         Canvas(Modifier.fillMaxSize()) {
             val radius = this.size.minDimension * 0.075f
             PIP_POSITIONS.getValue(die.value).forEach { (fx, fy) ->
+                val center = Offset(this.size.width * fx, this.size.height * fy)
+                // Sunken pip: a slightly larger dark circle offset up-left
+                // peeks out as the shadowed rim of the carved socket.
                 drawCircle(
-                    color = pips,
-                    radius = radius,
-                    center = Offset(this.size.width * fx, this.size.height * fy),
+                    color = Color.Black.copy(alpha = 0.35f),
+                    radius = radius * 1.15f,
+                    center = center + Offset(-0.5f, -0.5f),
+                )
+                drawCircle(color = pips, radius = radius, center = center)
+                // Faint ledge highlight below the pip
+                // (CSS 0 .5px .5px rgba(255,255,255,.3)).
+                drawArc(
+                    color = Color.White.copy(alpha = 0.3f),
+                    startAngle = 15f,
+                    sweepAngle = 150f,
+                    useCenter = false,
+                    topLeft = center - Offset(radius + 0.75f, radius + 0.75f),
+                    size = Size((radius + 0.75f) * 2, (radius + 0.75f) * 2),
+                    style = Stroke(width = 1f),
                 )
             }
         }

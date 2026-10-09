@@ -32,9 +32,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -168,8 +179,9 @@ private fun HeaderRow(state: GameState, cell: Dp, dieSize: Dp, gap: Dp) {
                             if (revealed) "Column ${col + 1} hidden die: ${colourName(die.colour)} ${die.value}"
                             else "Hidden die"
                     }
-                    .clip(WellShape)
-                    .background(MasterDiceColors.Brass),
+                    .shadow(4.dp, WellShape, clip = false)
+                    .drawBehind { drawBrassTile() }
+                    .border(1.dp, MasterDiceColors.TileEdge, WellShape),
                 contentAlignment = Alignment.Center,
             ) {
                 if (revealed) {
@@ -178,7 +190,7 @@ private fun HeaderRow(state: GameState, cell: Dp, dieSize: Dp, gap: Dp) {
                     BasicText(
                         text = "?",
                         style = TextStyle(
-                            color = MasterDiceColors.Board,
+                            color = MasterDiceColors.TileGlyph,
                             fontSize = (cell.value * 0.45f).sp,
                             fontWeight = FontWeight.Bold,
                         ),
@@ -204,7 +216,10 @@ private fun GuessRow(
     val isActive = state.status == GameStatus.PLAYING && row == state.activeRow
     val isSubmitted = row < state.guesses.size
 
-    Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+    Row(
+        modifier = rowPanelModifier(isActive, isSubmitted),
+        horizontalArrangement = Arrangement.spacedBy(gap),
+    ) {
         for (col in 0 until GUESS_SIZE) {
             val slot = Slot.Cell(row, col)
             val die = state.dieAt(slot)
@@ -298,6 +313,21 @@ private fun CellWell(
     val currentDraggable by rememberUpdatedState(draggable)
     val currentOnIntent by rememberUpdatedState(onIntent)
 
+    // Colored outer glow behind submitted-cell borders (Stitch feedback rings).
+    val glowModifier = when (feedback) {
+        Feedback.GREEN -> Modifier.shadow(
+            8.dp, WellShape, clip = false,
+            ambientColor = MasterDiceColors.GreenBorder,
+            spotColor = MasterDiceColors.GreenBorder.copy(alpha = 0.4f),
+        )
+        Feedback.AMBER -> Modifier.shadow(
+            8.dp, WellShape, clip = false,
+            ambientColor = MasterDiceColors.AmberBorder,
+            spotColor = MasterDiceColors.AmberBorder.copy(alpha = 0.4f),
+        )
+        else -> Modifier
+    }
+
     val borderModifier = when {
         feedback == Feedback.GREEN ->
             Modifier.border(4.dp, MasterDiceColors.GreenBorder, WellShape)
@@ -307,7 +337,9 @@ private fun CellWell(
             Modifier.border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.15f), WellShape)
         highlighted ->
             Modifier.border(2.dp, MasterDiceColors.Brass, WellShape)
-        active ->
+        // Empty active cells get a dashed outline (drawn in the socket pass
+        // below); filled active cells keep a subtle brass edge.
+        active && die != null ->
             Modifier.border(1.dp, MasterDiceColors.Brass.copy(alpha = 0.35f), WellShape)
         else -> Modifier
     }
@@ -316,6 +348,7 @@ private fun CellWell(
     Box(
         modifier = Modifier
             .size(cell)
+            .then(glowModifier)
             .then(
                 if (slot is Slot.Cell) Modifier.testTag("cell-${slot.row}-${slot.col}")
                 else Modifier.testTag("tray-${(slot as Slot.Tray).index}")
@@ -372,14 +405,15 @@ private fun CellWell(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(WellShape)
-                .background(
-                    when {
-                        dimmed -> MasterDiceColors.Well.copy(alpha = 0.45f)
-                        active -> MasterDiceColors.WellActive
-                        else -> MasterDiceColors.Well
-                    }
-                )
+                .drawBehind {
+                    drawSocket(
+                        tray = slot is Slot.Tray,
+                        empty = die == null,
+                        dimmed = dimmed,
+                        dashed = slot is Slot.Cell && active && die == null &&
+                            !highlighted && feedback == null,
+                    )
+                }
                 .then(borderModifier),
             contentAlignment = Alignment.Center,
         ) {
@@ -429,10 +463,48 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
                 contentDescription =
                     if (enabled) "Submit guess" else "Submit guess, disabled until the row is full"
             }
-            .clip(WellShape)
-            .background(
-                if (enabled) MasterDiceColors.Brass
-                else MasterDiceColors.Well.copy(alpha = 0.45f)
+            .then(
+                if (enabled) {
+                    Modifier
+                        .shadow(
+                            12.dp, WellShape, clip = false,
+                            ambientColor = MasterDiceColors.EnterLight,
+                            spotColor = MasterDiceColors.EnterLight.copy(alpha = 0.7f),
+                        )
+                        .drawBehind {
+                            val corner = CornerRadius(10.dp.toPx())
+                            drawRoundRect(
+                                brush = Brush.verticalGradient(
+                                    listOf(
+                                        MasterDiceColors.EnterLight,
+                                        MasterDiceColors.EnterMid,
+                                        MasterDiceColors.EnterDark,
+                                    ),
+                                ),
+                                cornerRadius = corner,
+                            )
+                            clipPath(roundRectPath(size, corner)) {
+                                // Inset top highlight (CSS inset_0_1px_1px
+                                // rgba(255,255,255,.6)).
+                                drawRect(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.White.copy(alpha = 0.6f),
+                                            Color.Transparent,
+                                        ),
+                                        startY = 0f,
+                                        endY = 2.dp.toPx(),
+                                    ),
+                                    size = Size(size.width, 2.dp.toPx()),
+                                )
+                            }
+                        }
+                        .border(1.dp, MasterDiceColors.EnterEdge, WellShape)
+                } else {
+                    Modifier
+                        .clip(WellShape)
+                        .background(MasterDiceColors.Well.copy(alpha = 0.45f))
+                },
             )
             .pointerInput(enabled) {
                 if (enabled) {
@@ -444,7 +516,7 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
         BasicText(
             text = "✓",
             style = TextStyle(
-                color = if (enabled) MasterDiceColors.Board
+                color = if (enabled) MasterDiceColors.Ivory
                 else MasterDiceColors.Ivory.copy(alpha = 0.25f),
                 fontSize = (cell.value * 0.45f).sp,
                 fontWeight = FontWeight.Bold,
@@ -465,8 +537,7 @@ private fun TrayRow(
     Row(
         modifier = Modifier
             .clip(WellShape)
-            .background(MasterDiceColors.Tray)
-            .border(3.dp, MasterDiceColors.TrayRim, WellShape)
+            .drawBehind { drawWalnutTray() }
             .padding(gap),
         horizontalArrangement = Arrangement.spacedBy(gap),
     ) {
@@ -574,4 +645,221 @@ private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp) {
     ) {
         DieView(session.die, dieSize)
     }
+}
+
+private val RowPanelShape = RoundedCornerShape(12.dp)
+
+/** Panel chrome for the active and submitted guess rows (Stitch row 04/03). */
+private fun rowPanelModifier(active: Boolean, submitted: Boolean): Modifier = when {
+    active -> Modifier
+        .shadow(
+            15.dp, RowPanelShape, clip = false,
+            ambientColor = MasterDiceColors.Brass,
+            spotColor = MasterDiceColors.Brass.copy(alpha = 0.35f),
+        )
+        .background(MasterDiceColors.RowPanel.copy(alpha = 0.95f), RowPanelShape)
+        .border(2.dp, MasterDiceColors.Brass, RowPanelShape)
+    submitted -> Modifier
+        .background(MasterDiceColors.SubmittedPanel.copy(alpha = 0.85f), RowPanelShape)
+        .border(1.dp, MasterDiceColors.SubmittedPanelBorder, RowPanelShape)
+    else -> Modifier
+}
+
+private fun roundRectPath(size: Size, corner: CornerRadius): Path =
+    Path().apply { addRoundRect(RoundRect(0f, 0f, size.width, size.height, corner)) }
+
+/**
+ * Recessed socket (CSS .cell-well / .cell-well.empty-deeper / .walnut-groove).
+ * Radial felt gradient plus clipped inner shadows; tray wells get the carved
+ * walnut groove instead. [dashed] draws the brass "tap to place" outline for
+ * empty cells on the active row.
+ */
+private fun DrawScope.drawSocket(
+    tray: Boolean,
+    empty: Boolean,
+    dimmed: Boolean,
+    dashed: Boolean,
+) {
+    val w = size.width
+    val h = size.height
+    val corner = CornerRadius(10.dp.toPx())
+    val shapePath = roundRectPath(size, corner)
+
+    if (tray) {
+        // Carved walnut groove — always the deeper look.
+        drawRoundRect(
+            brush = Brush.verticalGradient(
+                0f to MasterDiceColors.GrooveDark,
+                0.5f to MasterDiceColors.GrooveMid,
+                1f to MasterDiceColors.GrooveLight,
+            ),
+            cornerRadius = corner,
+        )
+    } else if (empty) {
+        drawRoundRect(
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0f to MasterDiceColors.SocketEmptyLight,
+                    0.8f to MasterDiceColors.SocketEmptyMid,
+                    1f to MasterDiceColors.SocketEmptyDeep,
+                ),
+                center = Offset(w * 0.5f, h * 0.2f),
+                radius = w,
+            ),
+            cornerRadius = corner,
+        )
+    } else {
+        drawRoundRect(
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0f to MasterDiceColors.SocketLight,
+                    0.75f to MasterDiceColors.SocketMid,
+                    1f to MasterDiceColors.SocketDeep,
+                ),
+                center = Offset(w * 0.5f, h * 0.15f),
+                radius = w * 1.1f,
+            ),
+            cornerRadius = corner,
+        )
+    }
+
+    val deep = tray || empty
+    clipPath(shapePath) {
+        // Top inner shadow: a broad fade plus a harder lip right at the edge.
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.Black.copy(alpha = if (deep) 0.85f else 0.6f),
+                    Color.Transparent,
+                ),
+                startY = 0f,
+                endY = h * (if (deep) 0.45f else 0.35f),
+            ),
+        )
+        drawRect(
+            color = Color.Black.copy(alpha = if (deep) 0.95f else 0.9f),
+            size = Size(w, 1.5.dp.toPx()),
+        )
+        // Bottom inner highlight.
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = if (deep) 0.08f else 0.12f),
+                ),
+                startY = h * 0.8f,
+                endY = h,
+            ),
+            topLeft = Offset(0f, h * 0.8f),
+            size = Size(w, h * 0.2f),
+        )
+        // Preserve the old alpha dimming on non-active future rows.
+        if (dimmed) {
+            drawRect(color = MasterDiceColors.Board.copy(alpha = 0.5f))
+        }
+    }
+
+    // Faint outer bottom highlight (CSS 0 1px 1px rgba(255,255,255,.05)).
+    drawLine(
+        color = Color.White.copy(alpha = if (tray) 0.08f else 0.05f),
+        start = Offset(corner.x, h + 0.5f.dp.toPx()),
+        end = Offset(w - corner.x, h + 0.5f.dp.toPx()),
+        strokeWidth = 1.dp.toPx(),
+        cap = StrokeCap.Round,
+    )
+
+    if (dashed) {
+        val inset = 0.75.dp.toPx()
+        drawRoundRect(
+            color = MasterDiceColors.Brass.copy(alpha = 0.5f),
+            topLeft = Offset(inset, inset),
+            size = Size(w - inset * 2, h - inset * 2),
+            cornerRadius = CornerRadius(corner.x - inset),
+            style = Stroke(
+                width = 1.5.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(
+                    floatArrayOf(4.dp.toPx(), 3.dp.toPx()),
+                ),
+            ),
+        )
+    }
+}
+
+/**
+ * Brass mystery tile (CSS .brass-tile): 145° brass gradient with a bevel —
+ * bright inner lip on top, dark inner shadow on the bottom.
+ */
+private fun DrawScope.drawBrassTile() {
+    val w = size.width
+    val h = size.height
+    val corner = CornerRadius(10.dp.toPx())
+
+    // CSS 145deg sweeps from the upper-left toward the lower-right.
+    drawRoundRect(
+        brush = Brush.linearGradient(
+            colorStops = MasterDiceColors.BrassTileStops,
+            start = Offset(0f, 0f),
+            end = Offset(w, h),
+        ),
+        cornerRadius = corner,
+    )
+    clipPath(roundRectPath(size, corner)) {
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.White.copy(alpha = 0.7f), Color.Transparent),
+                startY = 0f,
+                endY = 1.5.dp.toPx(),
+            ),
+            size = Size(w, 1.5.dp.toPx()),
+        )
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.5f)),
+                startY = h - 3.dp.toPx(),
+                endY = h,
+            ),
+            topLeft = Offset(0f, h - 3.dp.toPx()),
+            size = Size(w, 3.dp.toPx()),
+        )
+    }
+}
+
+/** Walnut tray strip (CSS .walnut-tray) with carved top rim and dark base. */
+private fun DrawScope.drawWalnutTray() {
+    val w = size.width
+    val h = size.height
+    drawRect(
+        brush = Brush.verticalGradient(
+            0f to MasterDiceColors.TrayTop,
+            0.35f to MasterDiceColors.Tray,
+            1f to MasterDiceColors.TrayBottom,
+        ),
+    )
+    // Carved lip: top rim, then a fading inner highlight just beneath it.
+    val rim = 3.dp.toPx()
+    drawRect(color = MasterDiceColors.TrayRimTop, size = Size(w, rim))
+    drawRect(
+        brush = Brush.verticalGradient(
+            colors = listOf(Color.White.copy(alpha = 0.2f), Color.Transparent),
+            startY = rim,
+            endY = rim + 2.dp.toPx(),
+        ),
+        topLeft = Offset(0f, rim),
+        size = Size(w, 2.dp.toPx()),
+    )
+    // Bottom inner shadow + dark base rim.
+    drawRect(
+        brush = Brush.verticalGradient(
+            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
+            startY = h - 4.dp.toPx(),
+            endY = h,
+        ),
+        topLeft = Offset(0f, h - 4.dp.toPx()),
+        size = Size(w, 4.dp.toPx()),
+    )
+    drawRect(
+        color = MasterDiceColors.TrayRimBottom,
+        topLeft = Offset(0f, h - 2.dp.toPx()),
+        size = Size(w, 2.dp.toPx()),
+    )
 }
