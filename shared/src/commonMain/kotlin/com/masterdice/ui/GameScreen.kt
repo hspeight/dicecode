@@ -3,6 +3,7 @@ package com.masterdice.ui
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -43,7 +44,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -72,6 +73,10 @@ import com.masterdice.game.ROWS
 import com.masterdice.game.Slot
 import com.masterdice.game.TRAY_SIZE
 import com.masterdice.game.isLegalMove
+import com.masterdice.resources.Res
+import com.masterdice.resources.board_well
+import androidx.compose.ui.layout.ContentScale
+import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
 
 private val WellShape = RoundedCornerShape(10.dp)
@@ -430,7 +435,6 @@ private fun CellWell(
         else -> Modifier
     }
 
-    // Outer box is unclipped so the feedback badge can overhang the corner.
     Box(
         modifier = Modifier
             .size(cell)
@@ -491,18 +495,26 @@ private fun CellWell(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .drawBehind {
-                    drawSocket(
-                        tray = slot is Slot.Tray,
-                        empty = die == null,
-                        dimmed = dimmed,
-                        dashed = slot is Slot.Cell && active && die == null &&
-                            !highlighted && feedback == null,
-                    )
-                }
-                .then(borderModifier),
+                .then(borderModifier)
+                .drawWithContent {
+                    drawContent()
+                    // Dashed brass outline = empty drop target in the active row.
+                    if (slot is Slot.Cell && active && die == null &&
+                        !highlighted && feedback == null
+                    ) {
+                        drawDashedSocket()
+                    }
+                },
             contentAlignment = Alignment.Center,
         ) {
+            Image(
+                painter = painterResource(Res.drawable.board_well),
+                contentDescription = null,
+                contentScale = ContentScale.FillBounds,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { this.alpha = if (dimmed) 0.5f else 1f },
+            )
             if (die != null) {
                 DieView(die = die, size = dieSize, dimmed = dimmed)
             }
@@ -561,7 +573,7 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
                 } else {
                     Modifier
                         .clip(WellShape)
-                        .background(MasterDiceColors.Well.copy(alpha = 0.45f))
+                        .background(MasterDiceColors.SubmittedPanel.copy(alpha = 0.45f))
                 },
             )
             .pointerInput(enabled) {
@@ -753,124 +765,25 @@ private fun rowPanelModifier(active: Boolean, submitted: Boolean): Modifier = wh
 private fun roundRectPath(size: Size, corner: CornerRadius): Path =
     Path().apply { addRoundRect(RoundRect(0f, 0f, size.width, size.height, corner)) }
 
-/**
- * Recessed socket (CSS .cell-well / .cell-well.empty-deeper / .walnut-groove).
- * Radial felt gradient plus clipped inner shadows; tray wells get the carved
- * walnut groove instead. [dashed] draws the brass "tap to place" outline for
- * empty cells on the active row.
- */
-private fun DrawScope.drawSocket(
-    tray: Boolean,
-    empty: Boolean,
-    dimmed: Boolean,
-    dashed: Boolean,
-) {
-    val w = size.width
-    val h = size.height
+/** Dashed brass "tap to place" outline for empty cells on the active row. */
+private fun DrawScope.drawDashedSocket() {
     val corner = CornerRadius(10.dp.toPx())
-    val shapePath = roundRectPath(size, corner)
-
-    if (tray) {
-        // Carved walnut groove — always the deeper look.
-        drawRoundRect(
-            brush = Brush.verticalGradient(
-                0f to MasterDiceColors.GrooveDark,
-                0.5f to MasterDiceColors.GrooveMid,
-                1f to MasterDiceColors.GrooveLight,
+    val inset = 0.75.dp.toPx()
+    drawRoundRect(
+        color = MasterDiceColors.Brass.copy(alpha = 0.5f),
+        topLeft = Offset(inset, inset),
+        size = Size(size.width - inset * 2, size.height - inset * 2),
+        cornerRadius = CornerRadius(corner.x - inset),
+        style = Stroke(
+            width = 1.5.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(
+                floatArrayOf(4.dp.toPx(), 3.dp.toPx()),
             ),
-            cornerRadius = corner,
-        )
-    } else if (empty) {
-        drawRoundRect(
-            brush = Brush.radialGradient(
-                colorStops = arrayOf(
-                    0f to MasterDiceColors.SocketEmptyLight,
-                    0.8f to MasterDiceColors.SocketEmptyMid,
-                    1f to MasterDiceColors.SocketEmptyDeep,
-                ),
-                center = Offset(w * 0.5f, h * 0.2f),
-                radius = w,
-            ),
-            cornerRadius = corner,
-        )
-    } else {
-        drawRoundRect(
-            brush = Brush.radialGradient(
-                colorStops = arrayOf(
-                    0f to MasterDiceColors.SocketLight,
-                    0.75f to MasterDiceColors.SocketMid,
-                    1f to MasterDiceColors.SocketDeep,
-                ),
-                center = Offset(w * 0.5f, h * 0.15f),
-                radius = w * 1.1f,
-            ),
-            cornerRadius = corner,
-        )
-    }
-
-    val deep = tray || empty
-    clipPath(shapePath) {
-        // Top inner shadow: a broad fade plus a harder lip right at the edge.
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color.Black.copy(alpha = if (deep) 0.85f else 0.6f),
-                    Color.Transparent,
-                ),
-                startY = 0f,
-                endY = h * (if (deep) 0.45f else 0.35f),
-            ),
-        )
-        drawRect(
-            color = Color.Black.copy(alpha = if (deep) 0.95f else 0.9f),
-            size = Size(w, 1.5.dp.toPx()),
-        )
-        // Bottom inner highlight.
-        drawRect(
-            brush = Brush.verticalGradient(
-                colors = listOf(
-                    Color.Transparent,
-                    Color.White.copy(alpha = if (deep) 0.08f else 0.12f),
-                ),
-                startY = h * 0.8f,
-                endY = h,
-            ),
-            topLeft = Offset(0f, h * 0.8f),
-            size = Size(w, h * 0.2f),
-        )
-        // Preserve the old alpha dimming on non-active future rows.
-        if (dimmed) {
-            drawRect(color = MasterDiceColors.Board.copy(alpha = 0.5f))
-        }
-    }
-
-    // Faint outer bottom highlight (CSS 0 1px 1px rgba(255,255,255,.05)).
-    drawLine(
-        color = Color.White.copy(alpha = if (tray) 0.08f else 0.05f),
-        start = Offset(corner.x, h + 0.5f.dp.toPx()),
-        end = Offset(w - corner.x, h + 0.5f.dp.toPx()),
-        strokeWidth = 1.dp.toPx(),
-        cap = StrokeCap.Round,
+        ),
     )
-
-    if (dashed) {
-        val inset = 0.75.dp.toPx()
-        drawRoundRect(
-            color = MasterDiceColors.Brass.copy(alpha = 0.5f),
-            topLeft = Offset(inset, inset),
-            size = Size(w - inset * 2, h - inset * 2),
-            cornerRadius = CornerRadius(corner.x - inset),
-            style = Stroke(
-                width = 1.5.dp.toPx(),
-                pathEffect = PathEffect.dashPathEffect(
-                    floatArrayOf(4.dp.toPx(), 3.dp.toPx()),
-                ),
-            ),
-        )
-    }
 }
 
-/** Walnut tray strip (CSS .walnut-tray) with carved top rim and dark base. */
+/** Slate tray strip with carved top rim and dark base. */
 private fun DrawScope.drawWalnutTray() {
     val w = size.width
     val h = size.height

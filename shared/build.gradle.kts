@@ -37,6 +37,7 @@ kotlin {
             implementation(libs.lifecycle.viewmodel.compose)
             implementation(libs.lifecycle.runtime.compose)
             implementation(libs.okio)
+            implementation(libs.compose.components.resources)
         }
         commonTest.dependencies {
             implementation(kotlin("test"))
@@ -50,4 +51,10 @@ kotlin {
             implementation(compose.desktop.currentOs)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.masterdice.resources"
+    publicResClass = false
+    generateResClass = always
 }

@@ -6,10 +6,10 @@ const val ROWS = 10
 const val GUESS_SIZE = 3
 const val TRAY_SIZE = 4
 
-const val SAVE_VERSION = 1
+const val SAVE_VERSION = 2
 
 @Serializable
-enum class DieColour { RED, BLUE, GREEN, YELLOW, PURPLE, ORANGE }
+enum class DieColour { RED, BLUE, GREEN, ORANGE, PINK, TEAL }
 
 @Serializable
 data class Die(val colour: DieColour, val value: Int) {

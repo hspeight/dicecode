@@ -207,7 +207,7 @@ class EngineTest {
         assertEquals(
             listOf(Feedback.GREEN, Feedback.AMBER, Feedback.GREEN),
             evaluate(
-                listOf(d(DieColour.RED, 4), d(DieColour.YELLOW, 2), d(DieColour.GREEN, 6)),
+                listOf(d(DieColour.RED, 4), d(DieColour.ORANGE, 2), d(DieColour.GREEN, 6)),
                 solution,
             ),
         )
