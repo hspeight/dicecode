@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -548,34 +547,6 @@ private fun CellWell(
                 DieView(die = die, size = dieSize, dimmed = dimmed)
             }
         }
-        when (feedback) {
-            Feedback.GREEN -> FeedbackBadge("✓", MasterDiceColors.GreenBorder, cell)
-            Feedback.AMBER -> FeedbackBadge("~", MasterDiceColors.AmberBorder, cell)
-            else -> {}
-        }
-    }
-}
-
-@Composable
-private fun BoxScope.FeedbackBadge(text: String, color: Color, cell: Dp) {
-    val badge = cell * 0.32f
-    Box(
-        modifier = Modifier
-            .align(Alignment.TopStart)
-            .offset(x = -badge * 0.2f, y = -badge * 0.2f)
-            .size(badge)
-            .clip(CircleShape)
-            .background(color),
-        contentAlignment = Alignment.Center,
-    ) {
-        BasicText(
-            text = text,
-            style = TextStyle(
-                color = MasterDiceColors.Board,
-                fontSize = (badge.value * 0.6f).sp,
-                fontWeight = FontWeight.Bold,
-            ),
-        )
     }
 }
 
