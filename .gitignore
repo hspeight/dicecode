@@ -1,0 +1,91 @@
+# ----------------------------------------
+# Android / Gradle
+# ----------------------------------------
+.gradle/
+.kotlin/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+local.properties
+
+# NDK / CMake
+.cxx/
+externalNativeBuild/
+
+# ----------------------------------------
+# Android Studio / IntelliJ
+# ----------------------------------------
+.idea/
+*.iml
+
+# ----------------------------------------
+# OS junk
+# ----------------------------------------
+.DS_Store
+
+# ----------------------------------------
+# Captures
+# ----------------------------------------
+captures/
+
+# ----------------------------------------
+# Release artifacts
+# ----------------------------------------
+*.apk
+*.aab
+*.dm
+output-metadata.json
+
+# ----------------------------------------
+# App-specific release directories
+# ----------------------------------------
+app/release/
+app/pro/
+app/free/
+
+# ----------------------------------------
+# Keystore & signing
+# ----------------------------------------
+*.jks
+*.keystore
+keystore.properties
+
+# ----------------------------------------
+# Custom project files (kept from your list)
+# ----------------------------------------
+id_ed25519
+battery_log.csv
+battery_stats_1.txt
+wal_growth.csv
+
+# Scripts
+scripts/ftp-signed-release.ps1
+scripts/sign-apk.ps1
+scripts/ftp-signed-release-dev.ps1
+scripts/mac-sync.conf
+/docs/superpowers/plans/2026-05-18-fireworks-celebration.md
+/CLOUD_SYNC_BREAKDOWN.md
+
+# ----------------------------------------
+# Graphify cache/output
+# ----------------------------------------
+graphify-out/
+
+# ----------------------------------------
+# NodeJS
+# ----------------------------------------
+node_modules/
+
+# ----------------------------------------
+# Misc stuff
+# ----------------------------------------
+tmp/
+images/
+
+# ----------------------------------------
+# Test / ad-hoc backup files (project root)
+# ----------------------------------------
+test_backup*.json
+my_backup.json
+*.zip
+/scripts/firebase_read_service_key.json
+.firebase/
