@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
@@ -114,14 +115,18 @@ fun GameScreen(
         modifier = modifier
             .fillMaxSize()
             .background(MasterDiceColors.Board)
+            .drawBehind { drawFeltBackground() }
             .safeDrawingPadding()
             .onGloballyPositioned { dd.container = it },
     ) {
         val maxBoardWidth = if (maxWidth > 480.dp) 480.dp else maxWidth
         val gap = 6.dp
-        val widthCell = (maxBoardWidth - 16.dp - gap * (TRAY_SIZE - 1)) / TRAY_SIZE
-        // 11 cell-rows (10 grid + tray) plus title and spacing.
-        val heightCell = (maxHeight - 96.dp - gap * 12) / 11f
+        val labelWidth = 16.dp
+        // Rows are [label][3 wells][enter cell]; the tray is [spacer][4 wells].
+        val widthCell =
+            (maxBoardWidth - 16.dp - labelWidth - gap * TRAY_SIZE) / TRAY_SIZE
+        // 11 cell-rows (10 grid + tray) plus title, captions and spacing.
+        val heightCell = (maxHeight - 126.dp - gap * 12) / 11f
         val cell = if (widthCell < heightCell) widthCell else heightCell
         val dieSize = cell * 0.82f
 
@@ -135,31 +140,67 @@ fun GameScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 6.dp),
             ) {
-                BasicText(
-                    text = "Master Dice",
-                    style = TextStyle(
-                        color = MasterDiceColors.Ivory,
-                        fontSize = 22.sp,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.SemiBold,
-                    ),
+                Column(
                     modifier = Modifier.align(Alignment.Center),
-                )
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BasicText(
+                            text = "◆",
+                            style = TextStyle(
+                                color = MasterDiceColors.BrassBright.copy(alpha = 0.6f),
+                                fontSize = 10.sp,
+                            ),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        BasicText(
+                            text = "Master Dice",
+                            style = TextStyle(
+                                color = MasterDiceColors.BrassBright,
+                                fontSize = 22.sp,
+                                fontFamily = FontFamily.Serif,
+                                fontWeight = FontWeight.SemiBold,
+                                letterSpacing = 1.sp,
+                            ),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        BasicText(
+                            text = "◆",
+                            style = TextStyle(
+                                color = MasterDiceColors.BrassBright.copy(alpha = 0.6f),
+                                fontSize = 10.sp,
+                            ),
+                        )
+                    }
+                    val turn = if (state.status == GameStatus.PLAYING)
+                        (state.guesses.size + 1).coerceAtMost(ROWS)
+                    else state.guesses.size
+                    BasicText(
+                        text = "GUESS $turn / $ROWS",
+                        style = TextStyle(
+                            color = MasterDiceColors.Ivory.copy(alpha = 0.55f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 2.sp,
+                        ),
+                    )
+                }
                 HelpButton(
                     onClick = { showHelp = true },
                     modifier = Modifier.align(Alignment.CenterEnd),
                 )
             }
 
-            Box {
+            Box(Modifier.drawBehind { drawBoardCorners() }) {
                 Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                     for (row in ROWS - 1 downTo 0) {
                         GuessRow(
                             state = state,
                             row = row,
                             cell = cell,
+                            labelWidth = labelWidth,
                             dieSize = dieSize,
                             gap = gap,
                             dd = dd,
@@ -173,9 +214,34 @@ fun GameScreen(
                 }
             }
 
-            Spacer(Modifier.height(gap * 2))
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = labelWidth + gap, end = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                BasicText(
+                    text = "DICE TRAY",
+                    style = TextStyle(
+                        color = MasterDiceColors.BrassBright.copy(alpha = 0.7f),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp,
+                    ),
+                )
+                BasicText(
+                    text = "DRAG INTO THE ROW",
+                    style = TextStyle(
+                        color = MasterDiceColors.Ivory.copy(alpha = 0.3f),
+                        fontSize = 9.sp,
+                        letterSpacing = 1.sp,
+                    ),
+                )
+            }
+            Spacer(Modifier.height(4.dp))
 
-            TrayRow(state, cell, dieSize, gap, dd, onIntent)
+            TrayRow(state, cell, dieSize, gap, labelWidth, dd, onIntent)
         }
 
         DragOverlay(dd, dieSize)
@@ -301,6 +367,7 @@ private fun GuessRow(
     state: GameState,
     row: Int,
     cell: Dp,
+    labelWidth: Dp,
     dieSize: Dp,
     gap: Dp,
     dd: DragDropState,
@@ -313,7 +380,35 @@ private fun GuessRow(
     Row(
         modifier = rowPanelModifier(isActive, isSubmitted),
         horizontalArrangement = Arrangement.spacedBy(gap),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Column(
+            modifier = Modifier
+                .width(labelWidth)
+                .padding(start = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            BasicText(
+                text = (row + 1).toString().padStart(2, '0'),
+                style = TextStyle(
+                    color = when {
+                        isActive -> MasterDiceColors.BrassBright
+                        isSubmitted -> MasterDiceColors.Ivory.copy(alpha = 0.5f)
+                        else -> MasterDiceColors.Ivory.copy(alpha = 0.22f)
+                    },
+                    fontSize = 10.sp,
+                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                ),
+            )
+            if (isActive) {
+                Box(
+                    modifier = Modifier
+                        .padding(top = 2.dp)
+                        .size(3.dp)
+                        .background(MasterDiceColors.BrassBright, CircleShape),
+                )
+            }
+        }
         for (col in 0 until GUESS_SIZE) {
             val slot = Slot.Cell(row, col)
             val die = state.dieAt(slot)
@@ -344,24 +439,52 @@ private fun GuessRow(
             )
         }
 
-        // Column 4: enter cell on the active row, green count on submitted rows.
+        // Column 4: enter cell on the active row, feedback pegs on submitted rows.
         when {
             isActive -> EnterCell(state, cell, onIntent)
             isSubmitted -> {
-                val greens = state.guesses[row].feedback.count { it == Feedback.GREEN }
+                val feedback = state.guesses[row].feedback
+                val greens = feedback.count { it == Feedback.GREEN }
+                val ambers = feedback.count { it == Feedback.AMBER }
                 Box(
                     modifier = Modifier
                         .size(cell)
-                        .semantics { contentDescription = "Row ${row + 1}: $greens exact matches" },
+                        .semantics {
+                            contentDescription =
+                                "Row ${row + 1}: $greens exact, $ambers partial matches"
+                        },
                     contentAlignment = Alignment.Center,
                 ) {
-                    BasicText(
-                        text = "$greens",
-                        style = TextStyle(
-                            color = MasterDiceColors.Ivory.copy(alpha = 0.5f),
-                            fontSize = (cell.value * 0.35f).sp,
-                        ),
-                    )
+                    Row(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(
+                                MasterDiceColors.Board.copy(alpha = 0.55f),
+                            )
+                            .border(
+                                1.dp,
+                                MasterDiceColors.SubmittedPanelBorder,
+                                RoundedCornerShape(5.dp),
+                            )
+                            .padding(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    ) {
+                        for (f in feedback.sortedBy { it.ordinal }) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .background(
+                                        when (f) {
+                                            Feedback.GREEN -> MasterDiceColors.GreenBorder
+                                            Feedback.AMBER -> MasterDiceColors.AmberBorder
+                                            Feedback.NONE ->
+                                                MasterDiceColors.Ivory.copy(alpha = 0.18f)
+                                        },
+                                        CircleShape,
+                                    ),
+                            )
+                        }
+                    }
                 }
             }
             else -> Spacer(Modifier.size(cell))
@@ -592,31 +715,45 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
     ) {
         val iconColor = if (enabled) MasterDiceColors.Ivory
         else MasterDiceColors.Ivory.copy(alpha = 0.25f)
-        Canvas(Modifier.size(cell * 0.55f)) {
-            val w = size.width
-            val h = size.height
-            val stroke = Stroke(
-                width = w * 0.11f,
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round,
-            )
-            drawPath(
-                path = Path().apply {
-                    moveTo(w * 0.78f, h * 0.10f)
-                    lineTo(w * 0.78f, h * 0.62f)
-                    lineTo(w * 0.30f, h * 0.62f)
-                },
-                color = iconColor,
-                style = stroke,
-            )
-            drawPath(
-                path = Path().apply {
-                    moveTo(w * 0.48f, h * 0.44f)
-                    lineTo(w * 0.30f, h * 0.62f)
-                    lineTo(w * 0.48f, h * 0.80f)
-                },
-                color = iconColor,
-                style = stroke,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Canvas(Modifier.size(cell * 0.42f)) {
+                val w = size.width
+                val h = size.height
+                val stroke = Stroke(
+                    width = w * 0.11f,
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round,
+                )
+                drawPath(
+                    path = Path().apply {
+                        moveTo(w * 0.78f, h * 0.10f)
+                        lineTo(w * 0.78f, h * 0.62f)
+                        lineTo(w * 0.30f, h * 0.62f)
+                    },
+                    color = iconColor,
+                    style = stroke,
+                )
+                drawPath(
+                    path = Path().apply {
+                        moveTo(w * 0.48f, h * 0.44f)
+                        lineTo(w * 0.30f, h * 0.62f)
+                        lineTo(w * 0.48f, h * 0.80f)
+                    },
+                    color = iconColor,
+                    style = stroke,
+                )
+            }
+            BasicText(
+                text = "ENTER",
+                style = TextStyle(
+                    color = iconColor,
+                    fontSize = 6.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                ),
             )
         }
     }
@@ -628,6 +765,7 @@ private fun TrayRow(
     cell: Dp,
     dieSize: Dp,
     gap: Dp,
+    labelWidth: Dp,
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
@@ -638,6 +776,7 @@ private fun TrayRow(
             .padding(gap),
         horizontalArrangement = Arrangement.spacedBy(gap),
     ) {
+        Spacer(Modifier.width(labelWidth))
         for (i in 0 until TRAY_SIZE) {
             val slot = Slot.Tray(i)
             val die = state.tray[i]
@@ -781,7 +920,17 @@ private fun rowPanelModifier(active: Boolean, submitted: Boolean): Modifier = wh
             ambientColor = MasterDiceColors.Brass,
             spotColor = MasterDiceColors.Brass.copy(alpha = 0.35f),
         )
-        .background(MasterDiceColors.RowPanel.copy(alpha = 0.95f), RowPanelShape)
+        .background(MasterDiceColors.RowPanel.copy(alpha = 0.9f), RowPanelShape)
+        .background(
+            Brush.horizontalGradient(
+                listOf(
+                    MasterDiceColors.BrassBright.copy(alpha = 0.10f),
+                    MasterDiceColors.BrassBright.copy(alpha = 0.20f),
+                    MasterDiceColors.BrassBright.copy(alpha = 0.10f),
+                ),
+            ),
+            RowPanelShape,
+        )
     submitted -> Modifier
         .background(MasterDiceColors.SubmittedPanel.copy(alpha = 0.85f), RowPanelShape)
         .border(1.dp, MasterDiceColors.SubmittedPanelBorder, RowPanelShape)
@@ -790,6 +939,44 @@ private fun rowPanelModifier(active: Boolean, submitted: Boolean): Modifier = wh
 
 private fun roundRectPath(size: Size, corner: CornerRadius): Path =
     Path().apply { addRoundRect(RoundRect(0f, 0f, size.width, size.height, corner)) }
+
+/** Felt surface: radial light falloff plus a heavy edge vignette. */
+private fun DrawScope.drawFeltBackground() {
+    drawRect(
+        brush = Brush.radialGradient(
+            colors = listOf(
+                MasterDiceColors.FeltLight,
+                MasterDiceColors.FeltMid,
+                MasterDiceColors.FeltDark,
+            ),
+            center = center.copy(y = size.height * 0.3f),
+            radius = size.maxDimension * 0.85f,
+        ),
+    )
+    drawRect(
+        brush = Brush.radialGradient(
+            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.45f)),
+            center = center.copy(y = size.height * 0.4f),
+            radius = size.maxDimension,
+        ),
+    )
+}
+
+/** Brass corner brackets framing the guess board (Stitch corner ornaments). */
+private fun DrawScope.drawBoardCorners() {
+    val arm = 12.dp.toPx()
+    val stroke = 1.5.dp.toPx()
+    val inset = 4.dp.toPx()
+    val c = MasterDiceColors.Brass.copy(alpha = 0.35f)
+    val w = size.width
+    val h = size.height
+    for ((x0, x1) in listOf(inset to inset + arm, w - inset - arm to w - inset)) {
+        for ((y0, y1) in listOf(inset to inset + arm, h - inset - arm to h - inset)) {
+            drawLine(c, Offset(x1, y0), Offset(x0, y0), stroke)
+            drawLine(c, Offset(x0, y0), Offset(x0, y1), stroke)
+        }
+    }
+}
 
 /** Dashed brass "tap to place" outline for empty cells on the active row. */
 private fun DrawScope.drawDashedSocket() {
@@ -807,6 +994,12 @@ private fun DrawScope.drawDashedSocket() {
             ),
         ),
     )
+    // Centered "+" drop hint.
+    val arm = size.minDimension * 0.13f
+    val t = 1.5.dp.toPx()
+    val c = MasterDiceColors.Brass.copy(alpha = 0.55f)
+    drawLine(c, Offset(center.x - arm, center.y), Offset(center.x + arm, center.y), t)
+    drawLine(c, Offset(center.x, center.y - arm), Offset(center.x, center.y + arm), t)
 }
 
 /** Slate tray strip with carved top rim and dark base. */
