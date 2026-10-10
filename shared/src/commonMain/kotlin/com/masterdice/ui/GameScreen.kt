@@ -155,7 +155,7 @@ fun GameScreen(
 
             Box {
                 Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-                    for (row in 0 until ROWS) {
+                    for (row in ROWS - 1 downTo 0) {
                         GuessRow(
                             state = state,
                             row = row,
