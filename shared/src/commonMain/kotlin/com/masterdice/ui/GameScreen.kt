@@ -102,6 +102,8 @@ fun GameScreen(
     var revealedRows by remember { mutableIntStateOf(state.guesses.size) }
     var showHelp by remember { mutableStateOf(false) }
     var showDealPicker by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
+    var showMatchIndicators by remember { mutableStateOf(true) }
     val reveal = remember { Animatable(1f) }
     LaunchedEffect(state.guesses.size) {
         if (state.guesses.size > revealedRows) {
@@ -203,10 +205,13 @@ fun GameScreen(
                         )
                     }
                 }
-                HelpButton(
-                    onClick = { showHelp = true },
+                Row(
                     modifier = Modifier.align(Alignment.CenterEnd),
-                )
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    SettingsButton(onClick = { showSettings = true })
+                    HelpButton(onClick = { showHelp = true })
+                }
             }
 
             Box(Modifier.drawBehind { drawBoardCorners() }) {
@@ -222,6 +227,7 @@ fun GameScreen(
                             dd = dd,
                             onIntent = onIntent,
                             feedbackShown = { col -> feedbackShown(row, col) },
+                            showMatchIndicator = showMatchIndicators,
                         )
                     }
                 }
@@ -266,6 +272,14 @@ fun GameScreen(
             HelpPanel(onDismiss = { showHelp = false })
         }
 
+        if (showSettings) {
+            SettingsPanel(
+                showMatchIndicators = showMatchIndicators,
+                onToggle = { showMatchIndicators = it },
+                onDismiss = { showSettings = false },
+            )
+        }
+
         if (showDealPicker) {
             DebugDealPanel(
                 onDeal = { solution, decoy ->
@@ -299,6 +313,46 @@ private fun HelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Bold,
             ),
         )
+    }
+}
+
+@Composable
+private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(32.dp)
+            .testTag("settings")
+            .semantics { contentDescription = "Open settings" }
+            .clip(RoundedCornerShape(50))
+            .background(MasterDiceColors.Brass.copy(alpha = 0.25f))
+            .border(1.dp, MasterDiceColors.Brass.copy(alpha = 0.6f), RoundedCornerShape(50))
+            .pointerInput(Unit) { detectTapGestures { onClick() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(15.dp)) {
+            val brass = MasterDiceColors.Brass
+            val c = center
+            val r = size.minDimension / 2f
+            // Eight gear teeth as short radial strokes, then the hub ring.
+            for (i in 0 until 8) {
+                val a = i * Math.PI / 4
+                drawLine(
+                    color = brass,
+                    start = Offset(
+                        (c.x + kotlin.math.cos(a) * r * 0.72f).toFloat(),
+                        (c.y + kotlin.math.sin(a) * r * 0.72f).toFloat(),
+                    ),
+                    end = Offset(
+                        (c.x + kotlin.math.cos(a) * r).toFloat(),
+                        (c.y + kotlin.math.sin(a) * r).toFloat(),
+                    ),
+                    strokeWidth = r * 0.32f,
+                    cap = StrokeCap.Round,
+                )
+            }
+            drawCircle(color = brass, radius = r * 0.58f, center = c)
+            drawCircle(color = MasterDiceColors.Board, radius = r * 0.3f, center = c)
+        }
     }
 }
 
@@ -609,6 +663,132 @@ private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(onDismiss: () 
 }
 
 @Composable
+private fun androidx.compose.foundation.layout.BoxScope.SettingsPanel(
+    showMatchIndicators: Boolean,
+    onToggle: (Boolean) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("settingsPanel")
+            .background(MasterDiceColors.Board.copy(alpha = 0.82f))
+            .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 32.dp)
+                .clip(WellShape)
+                .background(MasterDiceColors.Board)
+                .border(1.dp, MasterDiceColors.Brass, WellShape)
+                .padding(20.dp)
+                // Swallow taps on the card itself so it doesn't dismiss.
+                .pointerInput(Unit) { detectTapGestures { } },
+        ) {
+            BasicText(
+                text = "Settings",
+                style = TextStyle(
+                    color = MasterDiceColors.Ivory,
+                    fontSize = 20.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+            Spacer(Modifier.height(14.dp))
+            if (debugToolsEnabled) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        BasicText(
+                            text = "Colour match indicators",
+                            style = TextStyle(
+                                color = MasterDiceColors.Ivory.copy(alpha = 0.85f),
+                                fontSize = 14.sp,
+                            ),
+                        )
+                        BasicText(
+                            text = "DEBUG BUILD ONLY",
+                            style = TextStyle(
+                                color = MasterDiceColors.AmberBorder.copy(alpha = 0.8f),
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.5.sp,
+                            ),
+                        )
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    // Pill switch: brass track + knob when on, muted when off.
+                    Box(
+                        modifier = Modifier
+                            .size(width = 44.dp, height = 24.dp)
+                            .testTag("toggleMatchIndicators")
+                            .semantics {
+                                contentDescription =
+                                    "Colour match indicators, " +
+                                        if (showMatchIndicators) "on" else "off"
+                            }
+                            .clip(RoundedCornerShape(50))
+                            .background(
+                                if (showMatchIndicators) MasterDiceColors.Brass
+                                else MasterDiceColors.RowPanel
+                            )
+                            .border(
+                                1.dp,
+                                if (showMatchIndicators) MasterDiceColors.BrassBright
+                                else MasterDiceColors.SubmittedPanelBorder,
+                                RoundedCornerShape(50),
+                            )
+                            .pointerInput(showMatchIndicators) {
+                                detectTapGestures { onToggle(!showMatchIndicators) }
+                            }
+                            .padding(3.dp),
+                        contentAlignment = if (showMatchIndicators) Alignment.CenterEnd
+                        else Alignment.CenterStart,
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(16.dp)
+                                .background(
+                                    if (showMatchIndicators) MasterDiceColors.Board
+                                    else MasterDiceColors.Ivory.copy(alpha = 0.4f),
+                                    CircleShape,
+                                ),
+                        )
+                    }
+                }
+            } else {
+                BasicText(
+                    text = "No settings available.",
+                    style = TextStyle(
+                        color = MasterDiceColors.Ivory.copy(alpha = 0.5f),
+                        fontSize = 14.sp,
+                    ),
+                )
+            }
+            Spacer(Modifier.height(18.dp))
+            BasicText(
+                text = "Done",
+                style = TextStyle(
+                    color = MasterDiceColors.Board,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .testTag("settingsDone")
+                    .semantics { contentDescription = "Close settings" }
+                    .clip(WellShape)
+                    .background(MasterDiceColors.Brass)
+                    .pointerInput(Unit) { detectTapGestures { onDismiss() } }
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
 private fun RuleText(text: String) {
     BasicText(
         text = text,
@@ -648,6 +828,7 @@ private fun GuessRow(
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
     feedbackShown: (Int) -> Boolean,
+    showMatchIndicator: Boolean,
 ) {
     val isActive = state.status == GameStatus.PLAYING && row == state.activeRow
     val isSubmitted = row < state.guesses.size
@@ -707,6 +888,7 @@ private fun GuessRow(
                 },
                 highlighted = highlighted,
                 feedback = if (showFeedback) feedback else null,
+                showMatchIndicator = showMatchIndicator,
                 description = cellDescription(state, row, col, die, feedback),
                 draggable = isActive && die != null && !draggingAway,
                 state = state,
@@ -796,6 +978,7 @@ private fun CellWell(
     alpha: Float,
     highlighted: Boolean,
     feedback: Feedback?,
+    showMatchIndicator: Boolean,
     description: String,
     draggable: Boolean,
     state: GameState,
@@ -809,8 +992,12 @@ private fun CellWell(
     val currentDraggable by rememberUpdatedState(draggable)
     val currentOnIntent by rememberUpdatedState(onIntent)
 
+    // The debug settings toggle hides the border/glow match indicators only;
+    // `feedback` still drives semantics via `description`.
+    val shownFeedback = if (showMatchIndicator) feedback else null
+
     // Colored outer glow behind submitted-cell borders (Stitch feedback rings).
-    val glowModifier = when (feedback) {
+    val glowModifier = when (shownFeedback) {
         Feedback.GREEN -> Modifier.shadow(
             8.dp, WellShape, clip = false,
             ambientColor = MasterDiceColors.GreenBorder,
@@ -825,11 +1012,11 @@ private fun CellWell(
     }
 
     val borderModifier = when {
-        feedback == Feedback.GREEN ->
+        shownFeedback == Feedback.GREEN ->
             Modifier.border(4.dp, MasterDiceColors.GreenBorder, WellShape)
-        feedback == Feedback.AMBER ->
+        shownFeedback == Feedback.AMBER ->
             Modifier.border(2.5.dp, MasterDiceColors.AmberBorder, WellShape)
-        feedback == Feedback.NONE ->
+        shownFeedback == Feedback.NONE ->
             Modifier.border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.15f), WellShape)
         highlighted ->
             Modifier.border(2.dp, MasterDiceColors.Brass, WellShape)
@@ -905,7 +1092,7 @@ private fun CellWell(
                     drawContent()
                     // Dashed brass outline = empty drop target in the active row.
                     if (slot is Slot.Cell && active && die == null &&
-                        !highlighted && feedback == null
+                        !highlighted && shownFeedback == null
                     ) {
                         drawDashedSocket()
                     }
@@ -1069,6 +1256,7 @@ private fun TrayRow(
                 alpha = 1f,
                 highlighted = highlighted,
                 feedback = null,
+                showMatchIndicator = true,
                 description = "Tray slot ${i + 1}: " +
                     (die?.let { "${colourName(it.colour)} ${it.value}" } ?: "empty"),
                 draggable = canDrag,

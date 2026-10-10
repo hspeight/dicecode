@@ -147,4 +147,33 @@ class ScreenshotTest {
         onNodeWithTag("helpPanel").fetchSemanticsNode()
         ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", File(tmpDir(), "help.png"))
     }
+
+    @Test
+    fun captureSettings() = runComposeUiTest {
+        var s by mutableStateOf(midGameState())
+        setContent {
+            GameScreen(state = s, onIntent = { s = reduce(s, it) }, onNewGame = {})
+        }
+        onNodeWithTag("settings").performClick()
+        waitForIdle()
+        onNodeWithTag("settingsPanel").fetchSemanticsNode()
+        ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", File(tmpDir(), "settings.png"))
+    }
+
+    @Test
+    fun captureIndicatorsHidden() = runComposeUiTest {
+        var s by mutableStateOf(midGameState())
+        setContent {
+            GameScreen(state = s, onIntent = { s = reduce(s, it) }, onNewGame = {})
+        }
+        onNodeWithTag("settings").performClick()
+        waitForIdle()
+        onNodeWithTag("toggleMatchIndicators").performClick()
+        onNodeWithTag("settingsDone").performClick()
+        waitForIdle()
+        ImageIO.write(
+            onRoot().captureToImage().toAwtImage(), "png",
+            File(tmpDir(), "indicators-hidden.png"),
+        )
+    }
 }
