@@ -9,6 +9,9 @@ sealed interface GameIntent {
 
     /** Debug builds only: start a game with an explicitly chosen deal. */
     data class NewGameWithDeal(val solution: List<Die>, val decoy: Die) : GameIntent
+
+    /** Debug builds only: revert the last submitted guess. */
+    data object UndoGuess : GameIntent
 }
 
 fun newGame(seed: Long): GameState {
@@ -104,6 +107,8 @@ fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
 
     is GameIntent.NewGameWithDeal -> newGame(intent.solution, intent.decoy)
 
+    GameIntent.UndoGuess -> undoGuess(state)
+
     is GameIntent.Move -> {
         if (!isLegalMove(state, intent.from, intent.to)) return state
         applyMove(state, intent.from, intent.to)
@@ -126,6 +131,21 @@ fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
             },
         )
     }
+}
+
+/**
+ * Reverts the state to just before the last Submit: the guess's dice go back
+ * into the active row and the leftover die back to its deal slot (tray dice
+ * never move within the tray, so its slot is always its deal index).
+ */
+private fun undoGuess(state: GameState): GameState {
+    val last = state.guesses.lastOrNull() ?: return state
+    return state.copy(
+        guesses = state.guesses.dropLast(1),
+        activeCells = last.dice,
+        tray = state.deal.map { if (it in last.dice) null else it },
+        status = GameStatus.PLAYING,
+    )
 }
 
 private fun applyMove(state: GameState, from: Slot, to: Slot): GameState {

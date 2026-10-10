@@ -192,10 +192,16 @@ fun GameScreen(
                     )
                 }
                 if (debugToolsEnabled) {
-                    DebugDealButton(
-                        onClick = { showDealPicker = true },
+                    Row(
                         modifier = Modifier.align(Alignment.CenterStart),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        DebugDealButton(onClick = { showDealPicker = true })
+                        DebugUndoButton(
+                            enabled = state.guesses.isNotEmpty(),
+                            onClick = { onIntent(GameIntent.UndoGuess) },
+                        )
+                    }
                 }
                 HelpButton(
                     onClick = { showHelp = true },
@@ -316,6 +322,33 @@ private fun DebugDealButton(onClick: () -> Unit, modifier: Modifier = Modifier) 
                 fontSize = 8.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.5.sp,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun DebugUndoButton(enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .testTag("debugUndo")
+            .semantics { contentDescription = "Undo last guess (debug)" }
+            .clip(RoundedCornerShape(50))
+            .background(MasterDiceColors.RowPanel)
+            .border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.3f), RoundedCornerShape(50))
+            .graphicsLayer { alpha = if (enabled) 1f else 0.35f }
+            .pointerInput(enabled) {
+                if (enabled) detectTapGestures { onClick() }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            text = "UNDO",
+            style = TextStyle(
+                color = MasterDiceColors.Ivory.copy(alpha = 0.55f),
+                fontSize = 6.5.sp,
+                fontWeight = FontWeight.Bold,
             ),
         )
     }

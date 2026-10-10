@@ -223,6 +223,40 @@ class EngineTest {
         assertEquals(listOf(Feedback.NONE), evaluate(listOf(d(DieColour.BLUE, 1)), solution))
     }
 
+    // ---------- debug intents ----------
+
+    @Test
+    fun undoGuessRestoresPreSubmitStateExactly() {
+        val preSubmit = losingGuess()
+        val submitted = reduce(preSubmit, GameIntent.Submit)
+        assertEquals(preSubmit, reduce(submitted, GameIntent.UndoGuess))
+    }
+
+    @Test
+    fun undoGuessIsNoOpWithNoGuesses() {
+        val state = newGame(7L)
+        assertSame(state, reduce(state, GameIntent.UndoGuess))
+    }
+
+    @Test
+    fun undoGuessReopensFinishedGame() {
+        val lost = playLoss()
+        val undone = reduce(lost, GameIntent.UndoGuess)
+        assertEquals(GameStatus.PLAYING, undone.status)
+        assertEquals(ROWS - 1, undone.guesses.size)
+        assertEquals(lost.guesses.last().dice, undone.activeCells)
+    }
+
+    @Test
+    fun newGameWithDealUsesExactDice() {
+        val solution = listOf(d(DieColour.RED, 1), d(DieColour.RED, 2), d(DieColour.RED, 3))
+        val decoy = d(DieColour.RED, 4)
+        val state = newGame(solution, decoy)
+        assertEquals(solution, state.solution)
+        assertEquals(solution + decoy, state.deal)
+        assertEquals(GameStatus.PLAYING, state.status)
+    }
+
     // ---------- helpers ----------
 
     /** Fills the active row with the solution dice in order, then submits. */
