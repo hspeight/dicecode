@@ -127,10 +127,9 @@ fun GameScreen(
     ) {
         val maxBoardWidth = if (maxWidth > 480.dp) 480.dp else maxWidth
         val gap = 6.dp
-        val labelWidth = 16.dp
-        // Rows are [label][3 wells][enter cell]; the tray is [spacer][4 wells].
+        // Rows are [3 wells][enter cell]; the tray is [4 wells].
         val widthCell =
-            (maxBoardWidth - 16.dp - labelWidth - gap * TRAY_SIZE) / TRAY_SIZE
+            (maxBoardWidth - 16.dp - gap * TRAY_SIZE) / TRAY_SIZE
         // 11 cell-rows (10 grid + tray) plus title, captions and spacing.
         val heightCell = (maxHeight - 126.dp - gap * 12) / 11f
         val cell = if (widthCell < heightCell) widthCell else heightCell
@@ -214,14 +213,13 @@ fun GameScreen(
                 }
             }
 
-            Box(Modifier.drawBehind { drawBoardCorners() }) {
+            Box {
                 Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                     for (row in ROWS - 1 downTo 0) {
                         GuessRow(
                             state = state,
                             row = row,
                             cell = cell,
-                            labelWidth = labelWidth,
                             dieSize = dieSize,
                             gap = gap,
                             dd = dd,
@@ -237,33 +235,24 @@ fun GameScreen(
             }
 
             Spacer(Modifier.height(4.dp))
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = labelWidth + gap, end = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                BasicText(
-                    text = "DICE TRAY",
-                    style = TextStyle(
-                        color = MasterDiceColors.BrassBright.copy(alpha = 0.7f),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp,
-                    ),
-                )
-                BasicText(
-                    text = "DRAG INTO THE ROW",
-                    style = TextStyle(
-                        color = MasterDiceColors.Ivory.copy(alpha = 0.3f),
-                        fontSize = 9.sp,
-                        letterSpacing = 1.sp,
-                    ),
-                )
-            }
-            Spacer(Modifier.height(4.dp))
+//            Row(
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .padding(end = 4.dp),
+//                horizontalArrangement = Arrangement.End,
+//            ) {
+//                BasicText(
+//                    text = "DRAG INTO THE ROW",
+//                    style = TextStyle(
+//                        color = MasterDiceColors.Ivory.copy(alpha = 0.3f),
+//                        fontSize = 9.sp,
+//                        letterSpacing = 1.sp,
+//                    ),
+//                )
+//            }
+//            Spacer(Modifier.height(4.dp))
 
-            TrayRow(state, cell, dieSize, gap, labelWidth, dd, onIntent)
+            TrayRow(state, cell, dieSize, gap, dd, onIntent)
         }
 
         DragOverlay(dd, dieSize)
@@ -338,7 +327,7 @@ private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             val r = size.minDimension / 2f
             // Eight gear teeth as short radial strokes, then the hub ring.
             for (i in 0 until 8) {
-                val a = i * Math.PI / 4
+                val a = i * kotlin.math.PI / 4
                 drawLine(
                     color = brass,
                     start = Offset(
@@ -413,7 +402,7 @@ private fun DebugUndoButton(enabled: Boolean, onClick: () -> Unit) {
 
 /** Debug-only panel: pick the three solution dice (in order) and the decoy. */
 @Composable
-private fun androidx.compose.foundation.layout.BoxScope.DebugDealPanel(
+private fun DebugDealPanel(
     onDeal: (solution: List<Die>, decoy: Die) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -609,7 +598,7 @@ private fun androidx.compose.foundation.layout.BoxScope.DebugDealPanel(
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(
+private fun HelpPanel(
     showMatchIndicators: Boolean,
     onDismiss: () -> Unit,
 ) {
@@ -677,7 +666,7 @@ private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.BoxScope.SettingsPanel(
+private fun SettingsPanel(
     showMatchIndicators: Boolean,
     onToggle: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -814,7 +803,7 @@ private fun RuleText(text: String) {
 }
 
 @Composable
-private fun RuleLine(marker: String, color: androidx.compose.ui.graphics.Color, text: String) {
+private fun RuleLine(marker: String, color: Color, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         BasicText(
             text = marker,
@@ -836,7 +825,6 @@ private fun GuessRow(
     state: GameState,
     row: Int,
     cell: Dp,
-    labelWidth: Dp,
     dieSize: Dp,
     gap: Dp,
     dd: DragDropState,
@@ -852,33 +840,6 @@ private fun GuessRow(
         horizontalArrangement = Arrangement.spacedBy(gap),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier
-                .width(labelWidth)
-                .padding(start = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            BasicText(
-                text = (row + 1).toString().padStart(2, '0'),
-                style = TextStyle(
-                    color = when {
-                        isActive -> MasterDiceColors.BrassBright
-                        isSubmitted -> MasterDiceColors.Ivory.copy(alpha = 0.5f)
-                        else -> MasterDiceColors.Ivory.copy(alpha = 0.22f)
-                    },
-                    fontSize = 10.sp,
-                    fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
-                ),
-            )
-            if (isActive) {
-                Box(
-                    modifier = Modifier
-                        .padding(top = 2.dp)
-                        .size(3.dp)
-                        .background(MasterDiceColors.BrassBright, CircleShape),
-                )
-            }
-        }
         for (col in 0 until GUESS_SIZE) {
             val slot = Slot.Cell(row, col)
             val die = state.dieAt(slot)
@@ -1251,7 +1212,6 @@ private fun TrayRow(
     cell: Dp,
     dieSize: Dp,
     gap: Dp,
-    labelWidth: Dp,
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
@@ -1262,7 +1222,6 @@ private fun TrayRow(
             .padding(gap),
         horizontalArrangement = Arrangement.spacedBy(gap),
     ) {
-        Spacer(Modifier.width(labelWidth))
         for (i in 0 until TRAY_SIZE) {
             val slot = Slot.Tray(i)
             val die = state.tray[i]
@@ -1448,22 +1407,6 @@ private fun DrawScope.drawFeltBackground() {
             radius = size.maxDimension,
         ),
     )
-}
-
-/** Brass corner brackets framing the guess board (Stitch corner ornaments). */
-private fun DrawScope.drawBoardCorners() {
-    val arm = 12.dp.toPx()
-    val stroke = 1.5.dp.toPx()
-    val inset = 4.dp.toPx()
-    val c = MasterDiceColors.Brass.copy(alpha = 0.35f)
-    val w = size.width
-    val h = size.height
-    for ((x0, x1) in listOf(inset to inset + arm, w - inset - arm to w - inset)) {
-        for ((y0, y1) in listOf(inset to inset + arm, h - inset - arm to h - inset)) {
-            drawLine(c, Offset(x1, y0), Offset(x0, y0), stroke)
-            drawLine(c, Offset(x0, y0), Offset(x0, y1), stroke)
-        }
-    }
 }
 
 /** Dashed brass "tap to place" outline for empty cells on the active row. */
