@@ -239,11 +239,11 @@ private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(onDismiss: () 
             Spacer(Modifier.height(12.dp))
             RuleText("A hidden sequence of three dice is the solution. The tray holds those three plus one decoy — work out which three belong, and in what order.")
             Spacer(Modifier.height(8.dp))
-            RuleText("Drag dice from the tray into the row, then tap the check mark. You have $ROWS guesses.")
+            RuleText("Drag dice from the tray into the row, then tap enter. You have $ROWS guesses.")
             Spacer(Modifier.height(12.dp))
-            RuleLine("✓", MasterDiceColors.GreenBorder, "Colour and value match that column's hidden die")
-            RuleLine("~", MasterDiceColors.AmberBorder, "Colour or value matches — not both")
-            RuleLine("·", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
+            RuleLine("■", MasterDiceColors.GreenBorder, "Colour and value match that column's hidden die")
+            RuleLine("■", MasterDiceColors.AmberBorder, "Colour or value matches — not both")
+            RuleLine("□", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
             Spacer(Modifier.height(16.dp))
             BasicText(
                 text = "Got it",
@@ -584,7 +584,7 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
         contentAlignment = Alignment.Center,
     ) {
         BasicText(
-            text = "✓",
+            text = "↵",
             style = TextStyle(
                 color = if (enabled) MasterDiceColors.Ivory
                 else MasterDiceColors.Ivory.copy(alpha = 0.25f),
