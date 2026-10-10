@@ -3,6 +3,7 @@ package com.masterdice.ui
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,6 +47,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
@@ -583,15 +586,35 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
             },
         contentAlignment = Alignment.Center,
     ) {
-        BasicText(
-            text = "↵",
-            style = TextStyle(
-                color = if (enabled) MasterDiceColors.Ivory
-                else MasterDiceColors.Ivory.copy(alpha = 0.25f),
-                fontSize = (cell.value * 0.45f).sp,
-                fontWeight = FontWeight.Bold,
-            ),
-        )
+        val iconColor = if (enabled) MasterDiceColors.Ivory
+        else MasterDiceColors.Ivory.copy(alpha = 0.25f)
+        Canvas(Modifier.size(cell * 0.55f)) {
+            val w = size.width
+            val h = size.height
+            val stroke = Stroke(
+                width = w * 0.11f,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round,
+            )
+            drawPath(
+                path = Path().apply {
+                    moveTo(w * 0.78f, h * 0.10f)
+                    lineTo(w * 0.78f, h * 0.62f)
+                    lineTo(w * 0.30f, h * 0.62f)
+                },
+                color = iconColor,
+                style = stroke,
+            )
+            drawPath(
+                path = Path().apply {
+                    moveTo(w * 0.48f, h * 0.44f)
+                    lineTo(w * 0.30f, h * 0.62f)
+                    lineTo(w * 0.48f, h * 0.80f)
+                },
+                color = iconColor,
+                style = stroke,
+            )
+        }
     }
 }
 
