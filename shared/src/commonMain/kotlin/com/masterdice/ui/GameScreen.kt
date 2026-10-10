@@ -778,7 +778,6 @@ private fun rowPanelModifier(active: Boolean, submitted: Boolean): Modifier = wh
             spotColor = MasterDiceColors.Brass.copy(alpha = 0.35f),
         )
         .background(MasterDiceColors.RowPanel.copy(alpha = 0.95f), RowPanelShape)
-        .border(2.dp, MasterDiceColors.Brass, RowPanelShape)
     submitted -> Modifier
         .background(MasterDiceColors.SubmittedPanel.copy(alpha = 0.85f), RowPanelShape)
         .border(1.dp, MasterDiceColors.SubmittedPanelBorder, RowPanelShape)
