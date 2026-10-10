@@ -11,3 +11,6 @@ actual fun defaultStorageDir(): String {
     )
     return (urls.first() as NSURL).path!!
 }
+
+@OptIn(kotlin.experimental.ExperimentalNativeApi::class)
+actual val debugToolsEnabled: Boolean get() = kotlin.native.Platform.isDebugBinary

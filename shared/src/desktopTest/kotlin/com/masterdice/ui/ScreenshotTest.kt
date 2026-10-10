@@ -125,6 +125,18 @@ class ScreenshotTest {
     }
 
     @Test
+    fun captureDealPicker() = runComposeUiTest {
+        var s by mutableStateOf(midGameState())
+        setContent {
+            GameScreen(state = s, onIntent = { s = reduce(s, it) }, onNewGame = {})
+        }
+        onNodeWithTag("debugDeal").performClick()
+        waitForIdle()
+        onNodeWithTag("debugDealPanel").fetchSemanticsNode()
+        ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", File(tmpDir(), "dealpicker.png"))
+    }
+
+    @Test
     fun captureHelp() = runComposeUiTest {
         var s by mutableStateOf(midGameState())
         setContent {

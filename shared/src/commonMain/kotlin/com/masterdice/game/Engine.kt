@@ -6,6 +6,9 @@ sealed interface GameIntent {
     data class Move(val from: Slot, val to: Slot) : GameIntent
     data object Submit : GameIntent
     data class NewGame(val seed: Long) : GameIntent
+
+    /** Debug builds only: start a game with an explicitly chosen deal. */
+    data class NewGameWithDeal(val solution: List<Die>, val decoy: Die) : GameIntent
 }
 
 fun newGame(seed: Long): GameState {
@@ -35,6 +38,24 @@ fun newGame(seed: Long): GameState {
         guesses = emptyList(),
         status = GameStatus.PLAYING,
         seed = seed,
+    )
+}
+
+/** Debug deal: explicit solution order and decoy; tray shows them listed order. */
+fun newGame(solution: List<Die>, decoy: Die): GameState {
+    require(solution.size == GUESS_SIZE && solution.distinct().size == GUESS_SIZE) {
+        "Solution must be $GUESS_SIZE distinct dice"
+    }
+    require(decoy !in solution) { "Decoy must not be a solution die" }
+    val deal = solution + decoy
+    return GameState(
+        solution = solution,
+        deal = deal,
+        tray = deal,
+        activeCells = List(GUESS_SIZE) { null },
+        guesses = emptyList(),
+        status = GameStatus.PLAYING,
+        seed = 0L,
     )
 }
 
@@ -80,6 +101,8 @@ fun evaluate(guess: List<Die>, solution: List<Die>): List<Feedback> =
 
 fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
     is GameIntent.NewGame -> newGame(intent.seed)
+
+    is GameIntent.NewGameWithDeal -> newGame(intent.solution, intent.decoy)
 
     is GameIntent.Move -> {
         if (!isLegalMove(state, intent.from, intent.to)) return state

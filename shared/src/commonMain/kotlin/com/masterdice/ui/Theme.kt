@@ -44,3 +44,13 @@ fun colourName(colour: DieColour): String = when (colour) {
     DieColour.PINK -> "Pink"
     DieColour.TEAL -> "Teal"
 }
+
+/** Small solid swatch per die colour (debug deal picker). */
+fun dieColourSwatch(colour: DieColour): Color = when (colour) {
+    DieColour.RED -> Color(0xFFD64545)
+    DieColour.BLUE -> Color(0xFF4A7FD4)
+    DieColour.GREEN -> Color(0xFF46A860)
+    DieColour.ORANGE -> Color(0xFFE8930C)
+    DieColour.PINK -> Color(0xFFDE6FA8)
+    DieColour.TEAL -> Color(0xFF3FB8AF)
+}

@@ -1,6 +1,7 @@
 package com.masterdice.platform
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 
 private lateinit var appContext: Context
 
@@ -10,3 +11,6 @@ fun installAndroidContext(context: Context) {
 }
 
 actual fun defaultStorageDir(): String = appContext.filesDir.absolutePath
+
+actual val debugToolsEnabled: Boolean
+    get() = appContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0

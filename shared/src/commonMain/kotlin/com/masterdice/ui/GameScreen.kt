@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -68,6 +69,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import com.masterdice.game.Die
+import com.masterdice.game.DieColour
 import com.masterdice.game.Feedback
 import com.masterdice.game.GameIntent
 import com.masterdice.game.GameState
@@ -77,6 +79,7 @@ import com.masterdice.game.ROWS
 import com.masterdice.game.Slot
 import com.masterdice.game.TRAY_SIZE
 import com.masterdice.game.isLegalMove
+import com.masterdice.platform.debugToolsEnabled
 import com.masterdice.resources.Res
 import com.masterdice.resources.board_well
 import androidx.compose.ui.layout.ContentScale
@@ -98,6 +101,7 @@ fun GameScreen(
     // count so only guesses submitted during this session animate in.
     var revealedRows by remember { mutableIntStateOf(state.guesses.size) }
     var showHelp by remember { mutableStateOf(false) }
+    var showDealPicker by remember { mutableStateOf(false) }
     val reveal = remember { Animatable(1f) }
     LaunchedEffect(state.guesses.size) {
         if (state.guesses.size > revealedRows) {
@@ -187,6 +191,12 @@ fun GameScreen(
                         ),
                     )
                 }
+                if (debugToolsEnabled) {
+                    DebugDealButton(
+                        onClick = { showDealPicker = true },
+                        modifier = Modifier.align(Alignment.CenterStart),
+                    )
+                }
                 HelpButton(
                     onClick = { showHelp = true },
                     modifier = Modifier.align(Alignment.CenterEnd),
@@ -249,6 +259,16 @@ fun GameScreen(
         if (showHelp) {
             HelpPanel(onDismiss = { showHelp = false })
         }
+
+        if (showDealPicker) {
+            DebugDealPanel(
+                onDeal = { solution, decoy ->
+                    onIntent(GameIntent.NewGameWithDeal(solution, decoy))
+                    showDealPicker = false
+                },
+                onDismiss = { showDealPicker = false },
+            )
+        }
     }
 }
 
@@ -273,6 +293,228 @@ private fun HelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
                 fontWeight = FontWeight.Bold,
             ),
         )
+    }
+}
+
+@Composable
+private fun DebugDealButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(32.dp)
+            .testTag("debugDeal")
+            .semantics { contentDescription = "Open debug deal picker" }
+            .clip(RoundedCornerShape(50))
+            .background(MasterDiceColors.RowPanel)
+            .border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.3f), RoundedCornerShape(50))
+            .pointerInput(Unit) { detectTapGestures { onClick() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            text = "DEV",
+            style = TextStyle(
+                color = MasterDiceColors.Ivory.copy(alpha = 0.55f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp,
+            ),
+        )
+    }
+}
+
+/** Debug-only panel: pick the three solution dice (in order) and the decoy. */
+@Composable
+private fun androidx.compose.foundation.layout.BoxScope.DebugDealPanel(
+    onDeal: (solution: List<Die>, decoy: Die) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val labels = listOf("SOL 1", "SOL 2", "SOL 3", "DECOY")
+    val dice = remember {
+        mutableStateListOf(
+            Die(DieColour.RED, 1), Die(DieColour.BLUE, 2),
+            Die(DieColour.GREEN, 3), Die(DieColour.ORANGE, 4),
+        )
+    }
+    var selected by remember { mutableIntStateOf(0) }
+    val distinct = dice.distinct().size == TRAY_SIZE
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("debugDealPanel")
+            .background(MasterDiceColors.Board.copy(alpha = 0.82f))
+            .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(horizontal = 24.dp)
+                .clip(WellShape)
+                .background(MasterDiceColors.Board)
+                .border(1.dp, MasterDiceColors.Brass, WellShape)
+                .padding(16.dp)
+                .pointerInput(Unit) { detectTapGestures { } },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            BasicText(
+                text = "Fix the deal",
+                style = TextStyle(
+                    color = MasterDiceColors.Ivory,
+                    fontSize = 18.sp,
+                    fontFamily = FontFamily.Serif,
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+            BasicText(
+                text = "DEBUG BUILD ONLY",
+                style = TextStyle(
+                    color = MasterDiceColors.AmberBorder.copy(alpha = 0.8f),
+                    fontSize = 8.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                ),
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                dice.forEachIndexed { index, die ->
+                    val isSelected = index == selected
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .testTag("dealSlot-$index")
+                            .clip(WellShape)
+                            .background(
+                                if (isSelected) MasterDiceColors.RowPanel
+                                else MasterDiceColors.SubmittedPanel
+                            )
+                            .border(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color = if (isSelected) MasterDiceColors.Brass
+                                else MasterDiceColors.SubmittedPanelBorder,
+                                shape = WellShape,
+                            )
+                            .pointerInput(index) { detectTapGestures { selected = index } }
+                            .padding(8.dp),
+                    ) {
+                        DieView(die = die, size = 40.dp)
+                        Spacer(Modifier.height(4.dp))
+                        BasicText(
+                            text = labels[index],
+                            style = TextStyle(
+                                color = if (isSelected) MasterDiceColors.BrassBright
+                                else MasterDiceColors.Ivory.copy(alpha = 0.45f),
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp,
+                            ),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                DieColour.entries.forEach { colour ->
+                    val isCurrent = dice[selected].colour == colour
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .testTag("dealColour-${colour.name}")
+                            .semantics {
+                                contentDescription = "Set ${colourName(colour)} colour"
+                            }
+                            .clip(CircleShape)
+                            .background(dieColourSwatch(colour))
+                            .then(
+                                if (isCurrent) Modifier.border(
+                                    2.dp, MasterDiceColors.Ivory, CircleShape
+                                ) else Modifier
+                            )
+                            .pointerInput(colour) {
+                                detectTapGestures {
+                                    dice[selected] = dice[selected].copy(colour = colour)
+                                }
+                            },
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                (1..6).forEach { value ->
+                    val isCurrent = dice[selected].value == value
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .testTag("dealValue-$value")
+                            .semantics { contentDescription = "Set value $value" }
+                            .clip(WellShape)
+                            .background(
+                                if (isCurrent) MasterDiceColors.Brass
+                                else MasterDiceColors.RowPanel
+                            )
+                            .border(
+                                1.dp,
+                                if (isCurrent) MasterDiceColors.BrassBright
+                                else MasterDiceColors.SubmittedPanelBorder,
+                                WellShape,
+                            )
+                            .pointerInput(value) {
+                                detectTapGestures {
+                                    dice[selected] = dice[selected].copy(value = value)
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "$value",
+                            style = TextStyle(
+                                color = if (isCurrent) MasterDiceColors.Board
+                                else MasterDiceColors.Ivory,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            BasicText(
+                text = if (distinct) "Tray order: SOL 1, SOL 2, SOL 3, DECOY"
+                else "Dice must all be distinct",
+                style = TextStyle(
+                    color = if (distinct) MasterDiceColors.Ivory.copy(alpha = 0.4f)
+                    else MasterDiceColors.AmberBorder,
+                    fontSize = 10.sp,
+                ),
+            )
+            Spacer(Modifier.height(10.dp))
+            Box(
+                modifier = Modifier
+                    .testTag("dealNow")
+                    .semantics { contentDescription = "Start game with this deal" }
+                    .clip(WellShape)
+                    .background(
+                        if (distinct) MasterDiceColors.Brass
+                        else MasterDiceColors.RowPanel
+                    )
+                    .pointerInput(distinct, dice.toList()) {
+                        if (distinct) {
+                            detectTapGestures {
+                                onDeal(dice.take(GUESS_SIZE), dice[GUESS_SIZE])
+                            }
+                        }
+                    }
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+            ) {
+                BasicText(
+                    text = "Deal this hand",
+                    style = TextStyle(
+                        color = if (distinct) MasterDiceColors.Board
+                        else MasterDiceColors.Ivory.copy(alpha = 0.3f),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+            }
+        }
     }
 }
 
