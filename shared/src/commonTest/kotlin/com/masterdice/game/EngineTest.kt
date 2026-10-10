@@ -257,6 +257,66 @@ class EngineTest {
         assertEquals(GameStatus.PLAYING, state.status)
     }
 
+    // ---------- tap-to-move ----------
+
+    @Test
+    fun tapTrayDieFillsFirstEmptyCell() {
+        var state = newGame(7L)
+        val dieA = state.tray[1]!!
+        state = reduce(state, GameIntent.TapMove(Slot.Tray(1)))
+        assertEquals(dieA, state.activeCells[0])
+        assertNull(state.tray[1])
+
+        val dieB = state.tray[0]!!
+        state = reduce(state, GameIntent.TapMove(Slot.Tray(0)))
+        assertEquals(dieB, state.activeCells[1])
+    }
+
+    @Test
+    fun tapActiveCellDieReturnsToHomeTraySlot() {
+        var state = newGame(7L)
+        val die = state.tray[2]!!
+        state = reduce(state, GameIntent.TapMove(Slot.Tray(2)))
+
+        state = reduce(state, GameIntent.TapMove(Slot.Cell(0, 0)))
+        assertNull(state.activeCells[0])
+        assertEquals(die, state.tray[2])
+    }
+
+    @Test
+    fun tapCellDieFallsBackToFirstEmptyTraySlot() {
+        var state = newGame(7L)
+        val dieA = state.tray[0]!!
+        val dieB = state.tray[1]!!
+        // Occupy deal[0]'s home tray slot with a different die by dragging a
+        // cell die back into slot 0 instead of its own.
+        state = reduce(state, GameIntent.Move(Slot.Tray(0), Slot.Cell(0, 0)))
+        state = reduce(state, GameIntent.Move(Slot.Tray(1), Slot.Cell(0, 1)))
+        state = reduce(state, GameIntent.Move(Slot.Cell(0, 1), Slot.Tray(0)))
+
+        state = reduce(state, GameIntent.TapMove(Slot.Cell(0, 0)))
+        assertNull(state.activeCells[0])
+        assertEquals(dieB, state.tray[0])
+        assertEquals(dieA, state.tray[1])
+    }
+
+    @Test
+    fun tapMoveNoOps() {
+        var state = newGame(7L)
+        state = reduce(state, GameIntent.TapMove(Slot.Tray(0)))
+        // Empty tray slot
+        assertSame(state, reduce(state, GameIntent.TapMove(Slot.Tray(0))))
+        // Empty cell
+        assertSame(state, reduce(state, GameIntent.TapMove(Slot.Cell(0, 1))))
+        // Submitted-row cell
+        val won = wonInOneGuess()
+        assertSame(won, reduce(won, GameIntent.TapMove(Slot.Cell(0, 0))))
+        assertSame(won, reduce(won, GameIntent.TapMove(Slot.Tray(0))))
+        // Full row: tray tap has no free cell to target
+        val filled = filledState()
+        assertSame(filled, reduce(filled, GameIntent.TapMove(Slot.Tray(3))))
+    }
+
     // ---------- helpers ----------
 
     /** Fills the active row with the solution dice in order, then submits. */

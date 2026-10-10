@@ -161,4 +161,32 @@ class GameScreenTest {
         assertEquals(b, state.tray[0])
         assertEquals(null, state.activeCells[0])
     }
+
+    @Test
+    fun tapMovesDiceBetweenTrayAndRow() = runComposeUiTest {
+        var state by mutableStateOf(newGame(7L))
+        setContent {
+            GameScreen(
+                state = state,
+                onIntent = { intent -> state = reduce(state, intent) },
+                onNewGame = {},
+            )
+        }
+        waitForIdle()
+
+        // Taps fill the active row left to right.
+        val dieA = state.tray[0]!!
+        val dieB = state.tray[2]!!
+        onNodeWithTag("tray-0").performClick()
+        onNodeWithTag("tray-2").performClick()
+        waitForIdle()
+        assertEquals(dieA, state.activeCells[0])
+        assertEquals(dieB, state.activeCells[1])
+
+        // Tapping an active-row die sends it back to its own tray slot.
+        onNodeWithTag("cell-0-0").performClick()
+        waitForIdle()
+        assertEquals(null, state.activeCells[0])
+        assertEquals(dieA, state.tray[0])
+    }
 }

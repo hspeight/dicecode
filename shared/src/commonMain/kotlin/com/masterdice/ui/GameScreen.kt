@@ -907,6 +907,7 @@ private fun GuessRow(
                 draggable = isActive && die != null && !draggingAway,
                 state = state,
                 onIntent = onIntent,
+                onTap = { onIntent(GameIntent.TapMove(slot)) },
             )
         }
 
@@ -997,6 +998,7 @@ private fun CellWell(
     draggable: Boolean,
     state: GameState,
     onIntent: (GameIntent) -> Unit,
+    onTap: () -> Unit,
 ) {
     // The drag gesture lives on the persistent well (keyed on slot only) so
     // recomposition mid-drag — the die leaving the slot, highlight changes —
@@ -1005,6 +1007,7 @@ private fun CellWell(
     val currentDie by rememberUpdatedState(die)
     val currentDraggable by rememberUpdatedState(draggable)
     val currentOnIntent by rememberUpdatedState(onIntent)
+    val currentOnTap by rememberUpdatedState(onTap)
 
     // The debug settings toggle hides the border/glow match indicators only;
     // `feedback` still drives semantics via `description`.
@@ -1095,6 +1098,13 @@ private fun CellWell(
                     if (s != null && s.from == slot && !s.returning) {
                         dd.startReturn()
                     }
+                }
+            }
+            // Tap = quick move: tray die fills the first free cell, cell die
+            // returns to the tray. Drags never reach here — they need slop.
+            .pointerInput(slot) {
+                detectTapGestures {
+                    if (currentDraggable && dd.session == null) currentOnTap()
                 }
             },
     ) {
@@ -1276,6 +1286,7 @@ private fun TrayRow(
                 draggable = canDrag,
                 state = state,
                 onIntent = onIntent,
+                onTap = { onIntent(GameIntent.TapMove(slot)) },
             )
         }
     }

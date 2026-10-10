@@ -4,6 +4,10 @@ import kotlin.random.Random
 
 sealed interface GameIntent {
     data class Move(val from: Slot, val to: Slot) : GameIntent
+
+    /** Tap a die: tray → first free cell of the active row, cell → its tray slot. */
+    data class TapMove(val slot: Slot) : GameIntent
+
     data object Submit : GameIntent
     data class NewGame(val seed: Long) : GameIntent
 
@@ -114,6 +118,12 @@ fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
         applyMove(state, intent.from, intent.to)
     }
 
+    is GameIntent.TapMove -> {
+        val target = tapTarget(state, intent.slot) ?: return state
+        if (!isLegalMove(state, intent.slot, target)) return state
+        applyMove(state, intent.slot, target)
+    }
+
     GameIntent.Submit -> {
         if (!state.canSubmit) return state
         val dice = state.activeCells.map { it!! }
@@ -130,6 +140,26 @@ fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
                 else -> GameStatus.PLAYING
             },
         )
+    }
+}
+
+/**
+ * Where a tapped die goes: a tray die fills the first free cell of the active
+ * row; a die in the active row goes to its own deal slot, or the first free
+ * tray slot if that slot was reused by a dragged die.
+ */
+private fun tapTarget(state: GameState, slot: Slot): Slot? = when (slot) {
+    is Slot.Tray -> state.activeCells.indexOfFirst { it == null }
+        .takeIf { it >= 0 }
+        ?.let { Slot.Cell(state.activeRow, it) }
+
+    is Slot.Cell -> {
+        val die = state.dieAt(slot) ?: return null
+        val home = state.deal.indexOf(die)
+        if (home >= 0 && state.tray.getOrNull(home) == null) Slot.Tray(home)
+        else state.tray.indexOfFirst { it == null }
+            .takeIf { it >= 0 }
+            ?.let { Slot.Tray(it) }
     }
 }
 
