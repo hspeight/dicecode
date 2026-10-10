@@ -269,7 +269,10 @@ fun GameScreen(
         DragOverlay(dd, dieSize)
 
         if (showHelp) {
-            HelpPanel(onDismiss = { showHelp = false })
+            HelpPanel(
+                showMatchIndicators = showMatchIndicators,
+                onDismiss = { showHelp = false },
+            )
         }
 
         if (showSettings) {
@@ -606,7 +609,10 @@ private fun androidx.compose.foundation.layout.BoxScope.DebugDealPanel(
 }
 
 @Composable
-private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(onDismiss: () -> Unit) {
+private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(
+    showMatchIndicators: Boolean,
+    onDismiss: () -> Unit,
+) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -639,9 +645,17 @@ private fun androidx.compose.foundation.layout.BoxScope.HelpPanel(onDismiss: () 
             Spacer(Modifier.height(8.dp))
             RuleText("Drag dice from the tray into the row, then tap enter. You have $ROWS guesses.")
             Spacer(Modifier.height(12.dp))
-            RuleLine("■", MasterDiceColors.GreenBorder, "Colour and value match that column's hidden die")
-            RuleLine("■", MasterDiceColors.AmberBorder, "Colour or value matches — not both")
-            RuleLine("□", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
+            if (showMatchIndicators) {
+                RuleLine("■", MasterDiceColors.GreenBorder, "Colour and value match that column's hidden die")
+                RuleLine("■", MasterDiceColors.AmberBorder, "Colour or value matches — not both")
+                RuleLine("□", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
+            } else {
+                RuleText("Match indicators are off — each submitted row shows a peg for every column:")
+                Spacer(Modifier.height(8.dp))
+                RuleLine("●", MasterDiceColors.GreenBorder, "Colour and value match")
+                RuleLine("●", MasterDiceColors.AmberBorder, "Colour or value matches — not both")
+                RuleLine("●", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
+            }
             Spacer(Modifier.height(16.dp))
             BasicText(
                 text = "Got it",
