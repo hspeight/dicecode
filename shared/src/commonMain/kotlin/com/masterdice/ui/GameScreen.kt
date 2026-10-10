@@ -330,7 +330,11 @@ private fun GuessRow(
                 dieSize = dieSize,
                 dd = dd,
                 active = isActive,
-                dimmed = !isActive && !isSubmitted,
+                alpha = when {
+                    isActive -> 1f
+                    isSubmitted -> 0.6f
+                    else -> 0.35f
+                },
                 highlighted = highlighted,
                 feedback = if (showFeedback) feedback else null,
                 description = cellDescription(state, row, col, die, feedback),
@@ -391,7 +395,7 @@ private fun CellWell(
     dieSize: Dp,
     dd: DragDropState,
     active: Boolean,
-    dimmed: Boolean,
+    alpha: Float,
     highlighted: Boolean,
     feedback: Feedback?,
     description: String,
@@ -516,10 +520,10 @@ private fun CellWell(
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer { this.alpha = if (dimmed) 0.5f else 1f },
+                    .graphicsLayer { this.alpha = alpha },
             )
             if (die != null) {
-                DieView(die = die, size = dieSize, dimmed = dimmed)
+                DieView(die = die, size = dieSize, alpha = alpha)
             }
         }
     }
@@ -648,7 +652,7 @@ private fun TrayRow(
                 dieSize = dieSize,
                 dd = dd,
                 active = state.status == GameStatus.PLAYING,
-                dimmed = false,
+                alpha = 1f,
                 highlighted = highlighted,
                 feedback = null,
                 description = "Tray slot ${i + 1}: " +

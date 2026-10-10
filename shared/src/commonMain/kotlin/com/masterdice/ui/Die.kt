@@ -92,9 +92,8 @@ fun DieView(
     die: Die,
     size: Dp,
     modifier: Modifier = Modifier,
-    dimmed: Boolean = false,
+    alpha: Float = 1f,
 ) {
-    val alpha = if (dimmed) 0.4f else 1f
     Box(
         modifier = modifier
             .size(size)
