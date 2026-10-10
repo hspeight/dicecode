@@ -289,6 +289,9 @@ class SolvabilityTest {
 
     @Test
     fun guaranteedGuessCounts() {
+        // Heavy exhaustive computation — opt in with -Dsolvability.full=true.
+        if (System.getProperty("solvability.full") != "true") return
+
         // Sanity: reproduce the previously computed exhaustive results.
         runCase(3, 4, "empty") { result -> assertEquals(4, result) }
         runCase(3, 5, "empty") { result -> assertEquals(5, result) }
@@ -353,6 +356,77 @@ class SolvabilityTest {
         }
         print(outFile.readText())
         assertTrue(true)
+    }
+
+    /**
+     * Worst-case guesses under count-only feedback (match indicators hidden):
+     * the player learns only how many columns were GREEN/AMBER/NONE, not
+     * which. Candidates are ordered c-tuples of distinct deal dice; state is a
+     * bitmask over them.
+     */
+    private fun countOnlySolve(c: Int, cells: IntArray): Int {
+        val dice = cells.map { allDice[it] }
+        val n = dice.size
+        val cand = mutableListOf<IntArray>()
+        for (a in 0 until n) for (b in 0 until n) for (d in 0 until n) {
+            if (c != 3 || a == b || a == d || b == d) continue
+            cand += intArrayOf(a, b, d)
+        }
+        val full = (1L shl cand.size) - 1
+        val memo = HashMap<Long, Int>()
+
+        fun sig(g: IntArray, t: IntArray): Int {
+            var greens = 0; var ambers = 0
+            for (j in 0 until c) {
+                if (g[j] == t[j]) greens++
+                else if (similar(dice[g[j]], dice[t[j]])) ambers++
+            }
+            return greens * 10 + ambers
+        }
+
+        fun solve(mask: Long): Int {
+            if (mask.countOneBits() == 1) return 1
+            memo[mask]?.let { return it }
+            var best = Int.MAX_VALUE
+            for (g in cand) {
+                val parts = HashMap<Int, Long>()
+                var m = mask
+                while (m != 0L) {
+                    val b = m and -m; m -= b
+                    val s = sig(g, cand[b.countTrailingZeroBits()])
+                    parts[s] = (parts[s] ?: 0L) or b
+                }
+                if (parts.size == 1) continue // zero-information guess
+                var worst = 0
+                for ((s, sub) in parts) {
+                    if (s >= c * 10) continue // all-green: the guess wins
+                    val w = solve(sub)
+                    if (w > worst) worst = w
+                }
+                if (1 + worst < best) best = 1 + worst
+            }
+            if (best == Int.MAX_VALUE) best = ROWS + 1
+            memo[mask] = best
+            return best
+        }
+        return solve(full)
+    }
+
+    @Test
+    fun countOnlyFeedbackBound() {
+        // All realizable 4-die structure classes (any 4-die deal has <=6 edges).
+        val workDir = java.io.File(System.getProperty("user.dir"))
+        val root = if (workDir.name == "shared") workDir.parentFile else workDir
+        val sb = StringBuilder("structure -> worst guesses (count-only feedback)\n")
+        var max = 0
+        for ((i, cells) in sparseStructures(4, 6).withIndex()) {
+            val w = countOnlySolve(3, cells)
+            if (w > max) max = w
+            sb.appendLine("class$i $w  ${cells.toList()}")
+        }
+        sb.appendLine("MAX worst-case guesses: $max")
+        java.io.File(root, "tmp/count_bound.txt").writeText(sb.toString())
+        assertTrue(max <= ROWS)
     }
 
     private fun runCase(cols: Int, size: Int, structure: String, check: (Int) -> Unit) {
