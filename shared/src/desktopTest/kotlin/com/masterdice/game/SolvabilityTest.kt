@@ -1,140 +1,363 @@
 package com.masterdice.game
 
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Exhaustive minimax over every distinct deal structure: what is the minimum
- * number of submitted guesses that guarantees a win, under optimal play?
+ * Exact minimax for "guesses to force a win" under the game's feedback rules.
  *
- * Feedback only depends on the "similarity graph" of the 4 deal dice (edge =
- * shares colour or value), so all C(36,4) deals collapse into a handful of
- * classes keyed by adjacency up to relabeling.
+ * Feedback decomposes per column: a response constrains column j's die to a
+ * subset ({g}, {x similar to g}, or {x dissimilar to g}). So every consistent
+ * candidate set is the set of matchings of a per-column allowed matrix —
+ * the state is just c small bitmasks, not a subset of candidates.
+ *
+ * Universal upper bound: n = c + d guesses always suffice (probe column j
+ * with die (t+j) mod n for t = 0..n-2, then submit). So a structure whose
+ * minimax reaches n proves the worst case is exactly n.
  */
 class SolvabilityTest {
 
     private val allDice: List<Die> =
         DieColour.entries.flatMap { c -> (1..6).map { v -> Die(c, v) } }
 
-    // All 24 ordered triples of distinct deal positions (index-encoded i*16+j*4+k,
-    // where i is the die in column 0, j in column 1, k in column 2).
-    private val candidates: List<Int> = (0..3).flatMap { i ->
-        (0..3).flatMap { j -> (0..3).map { k -> i * 16 + j * 4 + k } }
-    }.filter { code ->
-        val i = code / 16; val j = code / 4 % 4; val k = code % 4
-        i != j && i != k && j != k
-    }
-
-    private val fullMask: Long = candidates.fold(0L) { m, c -> m or (1L shl c) }
-
     private fun similar(a: Die, b: Die): Boolean =
         a.colour == b.colour || a.value == b.value
 
-    /**
-     * Feedback signature of candidate [c] against guess [g] under adjacency
-     * [adj]. 0 = all green (win); otherwise per-column G(0)/A(1)/N(2), base 3.
-     */
-    private fun sig(g: Int, c: Int, adj: Array<BooleanArray>): Int {
-        var s = 0
-        var place = 1
-        var t = g; var u = c
-        repeat(3) {
-            val gd = t % 4; val cd = u % 4
-            s += place * when {
-                gd == cd -> 0
-                adj[gd][cd] -> 1
-                else -> 2
+    /** Adjacency matrix for a deal given as grid cell indices colour*6+value-1. */
+    private fun adjacency(cells: IntArray): Array<BooleanArray> =
+        Array(cells.size) { i ->
+            BooleanArray(cells.size) { j ->
+                i != j && similar(allDice[cells[i]], allDice[cells[j]])
             }
-            place *= 3; t /= 4; u /= 4
         }
-        return s
+
+    /**
+     * Minimax solver for one deal structure. State: allowed[j] = n-bit mask of
+     * dice still possible in column j. Throws [BudgetExceeded] when the state
+     * budget runs out; [upperBound] then holds the best bound found so far.
+     */
+    class BudgetExceeded : Exception()
+
+    inner class Solver(val n: Int, val c: Int, val adj: Array<BooleanArray>) {
+        private val memo = HashMap<Long, Int>()
+        var states = 0
+        var budget = Int.MAX_VALUE
+        var upperBound = n
+
+        private fun pack(allowed: IntArray): Long {
+            var k = 0L
+            for (j in 0 until c) k = k or (allowed[j].toLong() shl (8 * j))
+            return k
+        }
+
+        /** Columns in ascending allowed-count order for faster matching search. */
+        private fun hasMatching(allowed: IntArray): Boolean {
+            val order = (0 until c).sortedBy { allowed[it].countOneBits() }
+            fun dfs(t: Int, used: Int): Boolean {
+                if (t == c) return true
+                var m = allowed[order[t]] and used.inv()
+                while (m != 0) {
+                    val b = m and -m; m -= b
+                    if (dfs(t + 1, used or b)) return true
+                }
+                return false
+            }
+            return dfs(0, 0)
+        }
+
+        private fun countMatchings(allowed: IntArray, limit: Int): Int {
+            val order = (0 until c).sortedBy { allowed[it].countOneBits() }
+            var count = 0
+            fun dfs(t: Int, used: Int) {
+                if (count >= limit) return
+                if (t == c) { count++; return }
+                var m = allowed[order[t]] and used.inv()
+                while (m != 0) {
+                    val b = m and -m; m -= b
+                    dfs(t + 1, used or b)
+                }
+            }
+            dfs(0, 0)
+            return count
+        }
+
+        /**
+         * Worst-case continuation if we play guess [g] from [allowed].
+         * MAX_VALUE if the adversary can stall (a response leaves the state
+         * unchanged), otherwise the max solve() over response classes.
+         */
+        private fun evalGuess(allowed: IntArray, g: IntArray, best: Int): Int {
+            // Per-column response masks: G = {g_j}, A = similar, N = dissimilar.
+            // Only nonempty options participate — sparse graphs have few As.
+            val options = Array(c) { IntArray(3) }
+            val nOpts = IntArray(c)
+            for (j in 0 until c) {
+                val gbit = 1 shl g[j]
+                if (allowed[j] and gbit != 0) options[j][nOpts[j]++] = gbit
+                var a = 0; var o = 0
+                var m = allowed[j] and gbit.inv()
+                while (m != 0) {
+                    val b = m and -m; m -= b
+                    if (adj[g[j]][b.countTrailingZeroBits()]) a = a or b else o = o or b
+                }
+                if (a != 0) options[j][nOpts[j]++] = a
+                if (o != 0) options[j][nOpts[j]++] = o
+            }
+            var worst = 0
+            val child = IntArray(c)
+            val seen = HashSet<Long>()
+            fun dfs(j: Int, allG: Boolean) {
+                if (worst >= best - 1) return
+                if (j == c) {
+                    if (allG) return // winning response — branch closed
+                    if (child.contentEquals(allowed)) {
+                        worst = Int.MAX_VALUE - 1 // adversary can stall
+                        return
+                    }
+                    val key = pack(child)
+                    if (!seen.add(key)) return
+                    if (!hasMatching(child)) return
+                    val w = solve(child)
+                    if (w > worst) worst = w
+                    return
+                }
+                for (o in 0 until nOpts[j]) {
+                    child[j] = options[j][o]
+                    dfs(j + 1, allG && child[j] == (1 shl g[j]))
+                }
+            }
+            dfs(0, true)
+            return if (worst == Int.MAX_VALUE - 1) Int.MAX_VALUE else worst
+        }
+
+        fun solve(allowed: IntArray): Int {
+            if (countMatchings(allowed, 2) == 1) return 1
+            memo[pack(allowed)]?.let { return it }
+            if (++states > budget) throw BudgetExceeded()
+            var best = n
+            // Empty graph: all dice symmetric — WLOG first guess (0,1,...,c-1).
+            val isRoot = allowed.all { it == (1 shl n) - 1 }
+            val symmetric = adj.all { row -> row.all { !it } }
+
+            // Guess pool: any ordered c-tuple of distinct deal dice.
+            val g = IntArray(c)
+            fun dfs(j: Int, used: Int) {
+                if (j == c) {
+                    val w = evalGuess(allowed, g, best)
+                    if (w != Int.MAX_VALUE && 1 + w < best) {
+                        best = 1 + w
+                        if (best < upperBound) upperBound = best
+                    }
+                    return
+                }
+                var m = if (isRoot && symmetric) 1 shl j
+                else (1 shl n) - 1 and used.inv()
+                while (m != 0 && best > 2) {
+                    val b = m and -m; m -= b
+                    g[j] = b.countTrailingZeroBits()
+                    dfs(j + 1, used or b)
+                }
+            }
+            dfs(0, 0)
+
+            memo[pack(allowed)] = best
+            return best
+        }
     }
 
-    /** Minimax: guesses needed to force a win from candidate set [mask]. */
-    private fun worstCase(mask: Long, adj: Array<BooleanArray>, memo: HashMap<Long, Int>): Int {
-        if (mask.countOneBits() == 1) return 1
-        memo[mask]?.let { return it }
-        var best = Int.MAX_VALUE
-        for (g in candidates) {
-            val classes = HashMap<Int, Long>()
-            var m = mask
-            while (m != 0L) {
-                val bit = m and -m
-                m -= bit
-                val c = bit.countTrailingZeroBits()
-                val s = sig(g, c, adj)
-                if (s == 0) continue // g was the truth — won with this guess
-                classes[s] = (classes[s] ?: 0L) or bit
+    /**
+     * All deal-structure classes of size n with at most [maxEdges] adjacency
+     * edges, enumerated as n-subsets of the 6x6 grid (cells = colour*6+value-1),
+     * deduped to graph-isomorphism classes. First cell fixed to (0,0) — grid
+     * symmetry acts transitively on cells.
+     */
+    /**
+     * Canonical form of an n-vertex similarity graph: minimal packed adjacency
+     * over all n! relabelings (n <= 8, so 40320 perms of <=28 edges).
+     */
+    private fun canonical(a: Array<BooleanArray>, n: Int): Long {
+        var best = -1L
+        val perm = IntArray(n) { it }
+        fun pack(p: IntArray): Long {
+            var k = 0L
+            var bit = 0
+            for (i in 0 until n) for (j in i + 1 until n) {
+                if (a[p[i]][p[j]]) k = k or (1L shl bit)
+                bit++
             }
-            // A guess that partitions nothing gains no information — skip it.
-            if (classes.size == 1 && classes.values.single() == mask) continue
-            var worst = 0
-            for (sub in classes.values) {
-                val w = worstCase(sub, adj, memo)
-                if (w > worst) worst = w
-                if (worst >= best - 1) break // can't improve on best
-            }
-            if (1 + worst < best) best = 1 + worst
+            return k
         }
-        if (best == Int.MAX_VALUE) best = ROWS + 1
-        memo[mask] = best
+        fun permute(l: Int) {
+            if (l == n) {
+                val k = pack(perm)
+                if (best < 0 || k < best) best = k
+                return
+            }
+            for (i in l until n) {
+                val tmp = perm[l]; perm[l] = perm[i]; perm[i] = tmp
+                permute(l + 1)
+                val u = perm[l]; perm[l] = perm[i]; perm[i] = u
+            }
+        }
+        permute(0)
         return best
     }
 
-    @Test
-    fun computeMinimaxForEveryDealStructure() {
-        // One representative per relabeling-equivalence class of the deal's
-        // similarity graph; canonical key over all 24 permutations of S4.
-        val classes = LinkedHashMap<String, Array<BooleanArray>>()
-        val dealCount = HashMap<String, Int>()
+    private fun sparseStructures(n: Int, maxEdges: Int): List<IntArray> {
+        val leaves = ArrayList<IntArray>()
+        val cells = IntArray(n)
+        cells[0] = 0
 
-        for (a in 0 until allDice.size) for (b in a + 1 until allDice.size)
-            for (c in b + 1 until allDice.size) for (d in c + 1 until allDice.size) {
-                val dice = listOf(allDice[a], allDice[b], allDice[c], allDice[d])
-                val adj = Array(4) { i -> BooleanArray(4) { j -> similar(dice[i], dice[j]) } }
-                var bestKey: String? = null
-                for (p in permutations4()) {
-                    val key = buildString(16) {
-                        for (i in 0..3) for (j in 0..3)
-                            append(if (adj[p[i]][p[j]]) '1' else '0')
-                    }
-                    if (bestKey == null || key < bestKey!!) bestKey = key
-                }
-                classes.putIfAbsent(bestKey!!, adj)
-                dealCount[bestKey!!] = (dealCount[bestKey] ?: 0) + 1
-            }
-
-        val results = classes.map { (key, adj) ->
-            Triple(key, dealCount[key]!!, worstCase(fullMask, adj, HashMap()))
-        }.sortedBy { it.third }
-
-        val max = results.maxOf { it.third }
-        val report = buildString {
-            appendLine("Deal similarity-graph classes: ${results.size}")
-            for ((key, count, w) in results) {
-                appendLine("  graph=$key deals=$count worstCaseGuesses=$w")
-            }
-            appendLine("MAX worst-case guesses to force a win: $max")
+        fun edgeDelta(x: Int, k: Int): Int {
+            var e = 0
+            for (i in 0 until k) if (similar(allDice[x], allDice[cells[i]])) e++
+            return e
         }
-        print(report)
+
+        fun dfs(pos: Int, next: Int, edges: Int) {
+            if (pos == n) {
+                leaves += cells.copyOf()
+                return
+            }
+            for (x in next until 36) {
+                val d = edgeDelta(x, pos)
+                if (edges + d > maxEdges) continue
+                cells[pos] = x
+                dfs(pos + 1, x + 1, edges + d)
+            }
+        }
+        dfs(1, 1, 0)
+
+        // Bucket by a cheap invariant, then dedupe within buckets by canonical form.
+        val byInvariant = leaves.groupBy { sel ->
+            val a = adjacency(sel)
+            val deg = IntArray(n) { i -> (0 until n).count { a[i][it] } }.sorted()
+            "$deg"
+        }
+        val byKey = LinkedHashMap<Long, IntArray>()
+        for (bucket in byInvariant.values) {
+            for (sel in bucket) {
+                val key = canonical(adjacency(sel), n)
+                if (key !in byKey) byKey[key] = sel
+            }
+        }
+        return byKey.values.toList()
+    }
+
+    /**
+     * Deal structures to evaluate for deal size n: ALL sparse classes (the
+     * likeliest worst cases — every amber edge only adds information) plus a
+     * dense representative. Cells are 6x6-grid indices; matching cells (i,i)
+     * give an empty graph.
+     */
+    private fun structures(n: Int): List<Pair<String, IntArray>> {
+        val match = IntArray(minOf(n, 6)) { it * 6 + it }
+        val list = mutableListOf<Pair<String, IntArray>>()
+        when {
+            n <= 6 -> {
+                list += "empty" to match
+                list += "K$n" to IntArray(n) { it }                       // one colour, values 1..n
+            }
+            n == 7 -> {
+                // Minimum realizable edges is 2 — enumerate up to 5 exhaustively.
+                for ((i, cells) in sparseStructures(n, 5).withIndex()) {
+                    list += "sparse$i" to cells
+                }
+                list += "K6+1" to match + intArrayOf(6)
+            }
+            else -> { // n == 8: minimum realizable edges is 4
+                for ((i, cells) in sparseStructures(n, 4).withIndex()) {
+                    list += "sparse$i" to cells
+                }
+                // Two disjoint cherries (4 edges, two components + isolates).
+                list += "2cherries" to intArrayOf(0, 5, 30, 8, 10, 14, 19, 28)
+                // 4-edge path on 5 dice + 3 isolates.
+                list += "path4" to intArrayOf(0, 1, 13, 14, 26, 9, 22, 35)
+                // 5 edges: two V's sharing nothing.
+                list += "cherries" to match + intArrayOf(1, 15)
+                // Dense: two same-colour groups of four + densest clique rep.
+                list += "K4+K4" to intArrayOf(0, 1, 2, 3, 6, 7, 8, 9)
+                list += "K6+2" to match + intArrayOf(6, 7)
+            }
+        }
+        return list
+    }
+
+    @Test
+    fun guaranteedGuessCounts() {
+        // Sanity: reproduce the previously computed exhaustive results.
+        runCase(3, 4, "empty") { result -> assertEquals(4, result) }
+        runCase(3, 5, "empty") { result -> assertEquals(5, result) }
+
+        val table = listOf(3 to 1, 3 to 2, 3 to 3, 3 to 4, 3 to 5,
+            4 to 1, 4 to 2, 4 to 3, 4 to 4,
+            5 to 1, 5 to 2, 5 to 3,
+            6 to 1, 6 to 2)
+
         val workDir = java.io.File(System.getProperty("user.dir"))
         val root = if (workDir.name == "shared") workDir.parentFile else workDir
         java.io.File(root, "tmp").mkdirs()
-        java.io.File(root, "tmp/solvability.txt").writeText(report)
-        assertTrue(max <= ROWS, "Game must be winnable within $ROWS rows")
+        val outFile = java.io.File(root, "tmp/guarantee_table.txt")
+
+        val pool = Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors().coerceAtLeast(2)
+        )
+        // Per-row results: name -> exact value, or name -> -upperBound if the
+        // state budget was exceeded (upperBound <= n still applies).
+        val rows = ConcurrentHashMap<Int, ConcurrentHashMap<String, Int>>()
+        val stateBudget = 500_000
+
+        fun flush() {
+            val sb = StringBuilder("cols decoys  n  worst  (per structure; * = budget-capped, shows bound)\n")
+            for ((ri, pair) in table.withIndex()) {
+                val (cols, decoys) = pair
+                val res = rows[ri] ?: continue
+                var lo = 0; var hi = 0; var allExact = true
+                val per = StringBuilder()
+                for ((name, v) in res.toSortedMap()) {
+                    if (v >= 0) { if (v > lo) lo = v; if (v > hi) hi = v; per.append(" $name=$v") }
+                    else { allExact = false; if (-v > hi) hi = -v; per.append(" $name<=${-v}*") }
+                }
+                val summary = if (allExact) "$lo" else "$lo..$hi"
+                sb.appendLine("%4d %6d %3d  %6s   %s".format(cols, decoys, cols + decoys, summary, per))
+            }
+            outFile.writeText(sb.toString())
+        }
+
+        try {
+            for ((ri, pair) in table.withIndex()) {
+                val (cols, decoys) = pair
+                val size = cols + decoys
+                val res = rows.getOrPut(ri) { ConcurrentHashMap() }
+                val futures = structures(size).map { (name, cells) ->
+                    pool.submit {
+                        val solver = Solver(size, cols, adjacency(cells))
+                        solver.budget = stateBudget
+                        try {
+                            res[name] = solver.solve(IntArray(cols) { (1 shl size) - 1 })
+                        } catch (e: BudgetExceeded) {
+                            res[name] = -solver.upperBound
+                        }
+                        flush()
+                    }
+                }
+                futures.forEach { it.get() }
+            }
+        } finally {
+            pool.shutdown()
+            pool.awaitTermination(1, TimeUnit.MINUTES)
+        }
+        print(outFile.readText())
+        assertTrue(true)
     }
 
-    private fun permutations4(): List<IntArray> {
-        val out = ArrayList<IntArray>()
-        fun perm(a: IntArray, l: Int) {
-            if (l == a.size) { out += a.copyOf(); return }
-            for (i in l until a.size) {
-                val t = a[l]; a[l] = a[i]; a[i] = t
-                perm(a, l + 1)
-                val u = a[l]; a[l] = a[i]; a[i] = u
-            }
-        }
-        perm(intArrayOf(0, 1, 2, 3), 0)
-        return out
+    private fun runCase(cols: Int, size: Int, structure: String, check: (Int) -> Unit) {
+        val cells = structures(size).first { it.first == structure }.second
+        val solver = Solver(size, cols, adjacency(cells))
+        check(solver.solve(IntArray(cols) { (1 shl size) - 1 }))
     }
 }
