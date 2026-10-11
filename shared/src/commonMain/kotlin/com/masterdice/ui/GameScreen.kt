@@ -670,7 +670,7 @@ private fun HelpPanel(
             Spacer(Modifier.height(12.dp))
             RuleText("A hidden sequence of three dice is the solution. The tray holds those three plus one decoy — work out which three belong, and in what order.")
             Spacer(Modifier.height(8.dp))
-            RuleText("Drag dice from the tray into the row, then tap enter. You have $ROWS guesses.")
+            RuleText("Drag dice from the tray into the row — or tap a tray die to fill the first free cell. Tap a placed die to return it to the tray. Tap enter to submit. You have $ROWS guesses.")
             Spacer(Modifier.height(12.dp))
             if (showMatchIndicators) {
                 RuleLine("■", MasterDiceColors.GreenBorder, "Colour and value match that column's hidden die")
