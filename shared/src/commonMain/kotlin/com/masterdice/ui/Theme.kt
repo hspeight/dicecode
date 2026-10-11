@@ -31,12 +31,6 @@ object MasterDiceColors {
     val TrayRimTop = Color(0xFF9A6339)
     val TrayRim = Color(0xFF6E4426)
     val TrayRimBottom = Color(0xFF2E1C0E)
-
-    // Glowing amber submit button.
-    val EnterLight = Color(0xFFFFA726)
-    val EnterMid = Color(0xFFFB8C00)
-    val EnterDark = Color(0xFFE65100)
-    val EnterEdge = Color(0xFFFFE082)
 }
 
 fun colourName(colour: DieColour): String = when (colour) {

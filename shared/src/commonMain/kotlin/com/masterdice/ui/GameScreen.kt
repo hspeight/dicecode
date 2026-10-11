@@ -41,18 +41,14 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -85,6 +81,7 @@ import com.masterdice.game.isLegalMove
 import com.masterdice.platform.debugToolsEnabled
 import com.masterdice.resources.Res
 import com.masterdice.resources.board_well
+import com.masterdice.resources.enter_key
 import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
@@ -1165,49 +1162,6 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
                 contentDescription =
                     if (enabled) "Submit guess" else "Submit guess, disabled until the row is full"
             }
-            .then(
-                if (enabled) {
-                    Modifier
-                        .shadow(
-                            12.dp, WellShape, clip = false,
-                            ambientColor = MasterDiceColors.EnterLight,
-                            spotColor = MasterDiceColors.EnterLight.copy(alpha = 0.7f),
-                        )
-                        .drawBehind {
-                            val corner = CornerRadius(10.dp.toPx())
-                            drawRoundRect(
-                                brush = Brush.verticalGradient(
-                                    listOf(
-                                        MasterDiceColors.EnterLight,
-                                        MasterDiceColors.EnterMid,
-                                        MasterDiceColors.EnterDark,
-                                    ),
-                                ),
-                                cornerRadius = corner,
-                            )
-                            clipPath(roundRectPath(size, corner)) {
-                                // Inset top highlight (CSS inset_0_1px_1px
-                                // rgba(255,255,255,.6)).
-                                drawRect(
-                                    brush = Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.White.copy(alpha = 0.6f),
-                                            Color.Transparent,
-                                        ),
-                                        startY = 0f,
-                                        endY = 2.dp.toPx(),
-                                    ),
-                                    size = Size(size.width, 2.dp.toPx()),
-                                )
-                            }
-                        }
-                        .border(1.dp, MasterDiceColors.EnterEdge, WellShape)
-                } else {
-                    Modifier
-                        .clip(WellShape)
-                        .background(MasterDiceColors.SubmittedPanel.copy(alpha = 0.45f))
-                },
-            )
             .pointerInput(enabled) {
                 if (enabled) {
                     detectTapGestures { onIntent(GameIntent.Submit) }
@@ -1215,49 +1169,14 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
             },
         contentAlignment = Alignment.Center,
     ) {
-        val iconColor = if (enabled) MasterDiceColors.Ivory
-        else MasterDiceColors.Ivory.copy(alpha = 0.25f)
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Canvas(Modifier.size(cell * 0.42f)) {
-                val w = size.width
-                val h = size.height
-                val stroke = Stroke(
-                    width = w * 0.11f,
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round,
-                )
-                drawPath(
-                    path = Path().apply {
-                        moveTo(w * 0.78f, h * 0.10f)
-                        lineTo(w * 0.78f, h * 0.62f)
-                        lineTo(w * 0.30f, h * 0.62f)
-                    },
-                    color = iconColor,
-                    style = stroke,
-                )
-                drawPath(
-                    path = Path().apply {
-                        moveTo(w * 0.48f, h * 0.44f)
-                        lineTo(w * 0.30f, h * 0.62f)
-                        lineTo(w * 0.48f, h * 0.80f)
-                    },
-                    color = iconColor,
-                    style = stroke,
-                )
-            }
-            BasicText(
-                text = "ENTER",
-                style = TextStyle(
-                    color = iconColor,
-                    fontSize = 6.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp,
-                ),
-            )
-        }
+        Image(
+            painter = painterResource(Res.drawable.enter_key),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = if (enabled) 1f else 0.3f },
+        )
     }
 }
 
@@ -1500,9 +1419,6 @@ private fun rowPanelModifier(active: Boolean, submitted: Boolean): Modifier = wh
         .border(1.dp, MasterDiceColors.SubmittedPanelBorder, RowPanelShape)
     else -> Modifier
 }
-
-private fun roundRectPath(size: Size, corner: CornerRadius): Path =
-    Path().apply { addRoundRect(RoundRect(0f, 0f, size.width, size.height, corner)) }
 
 /** Felt surface: radial light falloff plus a heavy edge vignette. */
 private fun DrawScope.drawFeltBackground() {
