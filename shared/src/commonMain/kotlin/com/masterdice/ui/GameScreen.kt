@@ -90,6 +90,7 @@ import org.jetbrains.compose.resources.painterResource
 import kotlin.math.roundToInt
 
 private val WellShape = RoundedCornerShape(10.dp)
+private val TrayShape = RoundedCornerShape(16.dp)
 
 @Composable
 fun GameScreen(
@@ -140,6 +141,7 @@ fun GameScreen(
         val heightCell = (maxHeight - 126.dp - gap * 12) / 11f
         val cell = if (widthCell < heightCell) widthCell else heightCell
         val dieSize = cell * 0.82f
+        val trayDieSize = cell * 0.94f
 
         Column(
             modifier = Modifier
@@ -275,10 +277,10 @@ fun GameScreen(
 //            }
 //            Spacer(Modifier.height(4.dp))
 
-            TrayRow(state, cell, dieSize, gap, dd, onIntent)
+            TrayRow(state, cell, trayDieSize, gap, dd, onIntent)
         }
 
-        DragOverlay(dd, dieSize)
+        DragOverlay(dd, dieSize, trayDieSize)
 
         if (showHelp) {
             HelpPanel(
@@ -887,6 +889,7 @@ private fun GuessRow(
                 highlighted = highlighted,
                 feedback = if (showFeedback) feedback else null,
                 showMatchIndicator = showMatchIndicator,
+                wellRadius = null,
                 description = cellDescription(state, row, col, die, feedback),
                 draggable = isActive && die != null && !draggingAway,
                 state = state,
@@ -978,6 +981,7 @@ private fun CellWell(
     highlighted: Boolean,
     feedback: Feedback?,
     showMatchIndicator: Boolean,
+    wellRadius: Dp?,
     description: String,
     draggable: Boolean,
     state: GameState,
@@ -997,15 +1001,18 @@ private fun CellWell(
     // `feedback` still drives semantics via `description`.
     val shownFeedback = if (showMatchIndicator) feedback else null
 
+    // Tray cells draw their wells to match the die corner radius.
+    val shape = wellRadius?.let { RoundedCornerShape(it) } ?: WellShape
+
     // Colored outer glow behind submitted-cell borders (Stitch feedback rings).
     val glowModifier = when (shownFeedback) {
         Feedback.GREEN -> Modifier.shadow(
-            8.dp, WellShape, clip = false,
+            8.dp, shape, clip = false,
             ambientColor = MasterDiceColors.GreenBorder,
             spotColor = MasterDiceColors.GreenBorder.copy(alpha = 0.4f),
         )
         Feedback.AMBER -> Modifier.shadow(
-            8.dp, WellShape, clip = false,
+            8.dp, shape, clip = false,
             ambientColor = MasterDiceColors.AmberBorder,
             spotColor = MasterDiceColors.AmberBorder.copy(alpha = 0.4f),
         )
@@ -1014,17 +1021,17 @@ private fun CellWell(
 
     val borderModifier = when {
         shownFeedback == Feedback.GREEN ->
-            Modifier.border(4.dp, MasterDiceColors.GreenBorder, WellShape)
+            Modifier.border(4.dp, MasterDiceColors.GreenBorder, shape)
         shownFeedback == Feedback.AMBER ->
-            Modifier.border(2.5.dp, MasterDiceColors.AmberBorder, WellShape)
+            Modifier.border(2.5.dp, MasterDiceColors.AmberBorder, shape)
         shownFeedback == Feedback.NONE ->
-            Modifier.border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.15f), WellShape)
+            Modifier.border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.15f), shape)
         highlighted ->
-            Modifier.border(2.dp, MasterDiceColors.Brass, WellShape)
+            Modifier.border(2.dp, MasterDiceColors.Brass, shape)
         // Empty active cells get a dashed outline (drawn in the socket pass
         // below); filled active cells keep a subtle brass edge.
         active && die != null ->
-            Modifier.border(1.dp, MasterDiceColors.Brass.copy(alpha = 0.35f), WellShape)
+            Modifier.border(1.dp, MasterDiceColors.Brass.copy(alpha = 0.35f), shape)
         else -> Modifier
     }
 
@@ -1107,14 +1114,23 @@ private fun CellWell(
                 },
             contentAlignment = Alignment.Center,
         ) {
-            Image(
-                painter = painterResource(Res.drawable.board_well),
-                contentDescription = null,
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { this.alpha = alpha },
-            )
+            if (wellRadius != null) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { this.alpha = alpha }
+                        .drawBehind { drawSlateWell(wellRadius.toPx()) },
+                )
+            } else {
+                Image(
+                    painter = painterResource(Res.drawable.board_well),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { this.alpha = alpha },
+                )
+            }
             if (die != null) {
                 DieView(die = die, size = dieSize, alpha = alpha)
             }
@@ -1240,8 +1256,17 @@ private fun TrayRow(
 ) {
     Row(
         modifier = Modifier
-            .clip(WellShape)
-            .drawBehind { drawWalnutTray() }
+            .clip(TrayShape)
+            .background(MasterDiceColors.TrayFill)
+            .border(
+                2.dp,
+                Brush.verticalGradient(
+                    0f to MasterDiceColors.TrayRimTop,
+                    0.5f to MasterDiceColors.TrayRim,
+                    1f to MasterDiceColors.TrayRimBottom,
+                ),
+                TrayShape,
+            )
             .padding(gap),
         horizontalArrangement = Arrangement.spacedBy(gap),
     ) {
@@ -1263,6 +1288,7 @@ private fun TrayRow(
                 highlighted = highlighted,
                 feedback = null,
                 showMatchIndicator = true,
+                wellRadius = dieSize * 0.18f,
                 description = "Tray slot ${i + 1}: " +
                     (die?.let { "${colourName(it.colour)} ${it.value}" } ?: "empty"),
                 draggable = canDrag,
@@ -1415,7 +1441,7 @@ private fun EndPanel(
 }
 
 @Composable
-private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp) {
+private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp, trayDieSize: Dp) {
     val session = dd.session ?: return
     val returnOffset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
 
@@ -1429,7 +1455,8 @@ private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp) {
     }
 
     val pos = if (session.returning) returnOffset.value else session.offset
-    val half = dieSize / 2
+    val overlaySize = if (session.from is Slot.Tray) trayDieSize else dieSize
+    val half = overlaySize / 2
 
     Box(
         modifier = Modifier
@@ -1437,9 +1464,9 @@ private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp) {
             .testTag("dragOverlay")
             .offset { IntOffset((pos.x - half.toPx()).roundToInt(), (pos.y - half.toPx()).roundToInt()) }
             .graphicsLayer { scaleX = 1.12f; scaleY = 1.12f }
-            .shadow(12.dp, RoundedCornerShape(dieSize * 0.18f)),
+            .shadow(12.dp, RoundedCornerShape(overlaySize * 0.18f)),
     ) {
-        DieView(session.die, dieSize)
+        DieView(session.die, overlaySize)
     }
 }
 
@@ -1519,42 +1546,14 @@ private fun DrawScope.drawDashedSocket() {
     drawLine(c, Offset(center.x, center.y - arm), Offset(center.x, center.y + arm), t)
 }
 
-/** Slate tray strip with carved top rim and dark base. */
-private fun DrawScope.drawWalnutTray() {
-    val w = size.width
-    val h = size.height
-    drawRect(
-        brush = Brush.verticalGradient(
-            0f to MasterDiceColors.TrayTop,
-            0.35f to MasterDiceColors.Tray,
-            1f to MasterDiceColors.TrayBottom,
-        ),
-    )
-    // Carved lip: top rim, then a fading inner highlight just beneath it.
-    val rim = 3.dp.toPx()
-    drawRect(color = MasterDiceColors.TrayRimTop, size = Size(w, rim))
-    drawRect(
-        brush = Brush.verticalGradient(
-            colors = listOf(Color.White.copy(alpha = 0.2f), Color.Transparent),
-            startY = rim,
-            endY = rim + 2.dp.toPx(),
-        ),
-        topLeft = Offset(0f, rim),
-        size = Size(w, 2.dp.toPx()),
-    )
-    // Bottom inner shadow + dark base rim.
-    drawRect(
-        brush = Brush.verticalGradient(
-            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-            startY = h - 4.dp.toPx(),
-            endY = h,
-        ),
-        topLeft = Offset(0f, h - 4.dp.toPx()),
-        size = Size(w, 4.dp.toPx()),
-    )
-    drawRect(
-        color = MasterDiceColors.TrayRimBottom,
-        topLeft = Offset(0f, h - 2.dp.toPx()),
-        size = Size(w, 2.dp.toPx()),
+/** Recessed slate well drawn at a given corner radius (matches board_well.png). */
+private fun DrawScope.drawSlateWell(cornerRadius: Float) {
+    val inset = 2.dp.toPx()
+    drawRoundRect(color = MasterDiceColors.WellRim, cornerRadius = CornerRadius(cornerRadius))
+    drawRoundRect(
+        color = MasterDiceColors.WellFill,
+        topLeft = Offset(inset, inset),
+        size = Size(size.width - inset * 2, size.height - inset * 2),
+        cornerRadius = CornerRadius((cornerRadius - inset).coerceAtLeast(0f)),
     )
 }

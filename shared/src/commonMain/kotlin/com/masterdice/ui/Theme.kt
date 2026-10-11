@@ -22,12 +22,15 @@ object MasterDiceColors {
     val FeltMid = Color(0xFF111B2E)
     val FeltDark = Color(0xFF070D17)
 
-    // Walnut tray strip.
-    val TrayTop = Color(0xFF4A2D18)
-    val Tray = Color(0xFF3A2312)
-    val TrayBottom = Color(0xFF2A180C)
-    val TrayRimTop = Color(0xFF1E1107)
-    val TrayRimBottom = Color(0xFF120A04)
+    // Tray cell wells, drawn to match the die corner radius (board_well.png).
+    val WellFill = Color(0xFF2C3A52)
+    val WellRim = Color(0xFF152238)
+
+    // Deal tray: dark recessed well with a warm bronze rim, lit from above.
+    val TrayFill = Color(0xFF1C1410)
+    val TrayRimTop = Color(0xFF9A6339)
+    val TrayRim = Color(0xFF6E4426)
+    val TrayRimBottom = Color(0xFF2E1C0E)
 
     // Glowing amber submit button.
     val EnterLight = Color(0xFFFFA726)
