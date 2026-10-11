@@ -59,9 +59,12 @@ class GameStore(
         fs.delete(target, mustExist = false)
     }
 
-    /** Best score per level index across all games ever played. */
+    /** Best score per level index plus the career point total. */
     @Serializable
-    data class GameStats(val bestScores: Map<Int, Int> = emptyMap())
+    data class GameStats(
+        val bestScores: Map<Int, Int> = emptyMap(),
+        val totalScore: Int = 0,
+    )
 
     fun loadStats(): GameStats = try {
         if (!fs.exists(statsTarget)) {

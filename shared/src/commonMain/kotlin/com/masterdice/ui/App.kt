@@ -22,5 +22,6 @@ fun App() {
         onNewGame = viewModel::newGame,
         bestScore = stats.bestScores[state.levelIndex],
         newBest = newBest,
+        totalScore = stats.totalScore,
     )
 }

@@ -48,13 +48,15 @@ class GameViewModel(
             val level = LEVELS[next.levelIndex]
             val points = gameScore(next, level) ?: return
             val best = _stats.value.bestScores[level.index]
-            if (best == null || points > best) {
-                _stats.value = _stats.value.copy(
-                    bestScores = _stats.value.bestScores + (level.index to points),
-                )
-                _newBest.value = true
-                store?.saveStats(_stats.value)
-            }
+            val improved = best == null || points > best
+            _stats.value = _stats.value.copy(
+                bestScores = if (improved)
+                    _stats.value.bestScores + (level.index to points)
+                else _stats.value.bestScores,
+                totalScore = _stats.value.totalScore + points,
+            )
+            if (improved) _newBest.value = true
+            store?.saveStats(_stats.value)
         }
     }
 }

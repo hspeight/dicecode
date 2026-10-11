@@ -86,11 +86,13 @@ class GameViewModelTest {
         assertEquals(GameStatus.WON, vm.state.value.status)
         val expected = scoreWin(LEVELS[0], 1)
         assertEquals(expected, vm.stats.value.bestScores[0])
+        assertEquals(expected, vm.stats.value.totalScore)
         assertTrue(vm.newBest.value)
 
         // Stats persist across store/ViewModel instances.
         val vm2 = GameViewModel(GameStore("/saves", fs), Random(0))
         assertEquals(expected, vm2.stats.value.bestScores[0])
+        assertEquals(expected, vm2.stats.value.totalScore)
     }
 
     /** Loses on purpose: every submitted row contains the decoy. */
@@ -118,10 +120,15 @@ class GameViewModelTest {
         vm.newGame()
         assertFalse(vm.newBest.value)
 
-        // Losing pays at most 24 — it must not overwrite the 125 best.
+        // Losing pays at most 24 — it must not overwrite the 125 best,
+        // but the total still grows by the loss credit.
         vm.playLosingGame()
         assertEquals(GameStatus.LOST, vm.state.value.status)
         assertEquals(125, vm.stats.value.bestScores[0])
+        assertEquals(
+            125 + scoreLoss(LEVELS[0], vm.state.value.guesses),
+            vm.stats.value.totalScore,
+        )
         assertFalse(vm.newBest.value)
     }
 
@@ -140,6 +147,7 @@ class GameViewModelTest {
 
         assertEquals(GameStatus.WON, vm.state.value.status)
         assertTrue(vm.stats.value.bestScores.isEmpty())
+        assertEquals(0, vm.stats.value.totalScore)
         assertFalse(vm.newBest.value)
     }
 }

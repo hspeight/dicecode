@@ -98,6 +98,7 @@ fun GameScreen(
     onNewGame: () -> Unit,
     bestScore: Int? = null,
     newBest: Boolean = false,
+    totalScore: Int = 0,
     modifier: Modifier = Modifier,
 ) {
     val dd = rememberDragDropState()
@@ -196,6 +197,16 @@ fun GameScreen(
                             letterSpacing = 2.sp,
                         ),
                     )
+                    BasicText(
+                        text = "SCORE $totalScore",
+                        style = TextStyle(
+                            color = MasterDiceColors.BrassBright.copy(alpha = 0.7f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 2.sp,
+                        ),
+                        modifier = Modifier.testTag("runningTotal"),
+                    )
                 }
                 if (debugToolsEnabled) {
                     Row(
@@ -241,6 +252,7 @@ fun GameScreen(
                         Modifier.matchParentSize(),
                         bestScore = bestScore,
                         newBest = newBest,
+                        totalScore = totalScore,
                     )
                 }
             }
@@ -1269,6 +1281,7 @@ private fun EndPanel(
     modifier: Modifier = Modifier,
     bestScore: Int? = null,
     newBest: Boolean = false,
+    totalScore: Int = 0,
 ) {
     val level = LEVELS[state.levelIndex]
     val score = gameScore(state, level)
@@ -1330,6 +1343,15 @@ private fun EndPanel(
                         letterSpacing = 1.5.sp,
                     ),
                     modifier = Modifier.padding(top = 2.dp),
+                )
+                BasicText(
+                    text = "TOTAL $totalScore",
+                    style = TextStyle(
+                        color = MasterDiceColors.Ivory.copy(alpha = 0.35f),
+                        fontSize = 10.sp,
+                        letterSpacing = 1.5.sp,
+                    ),
+                    modifier = Modifier.padding(top = 4.dp),
                 )
             } else if (!state.scored) {
                 BasicText(
