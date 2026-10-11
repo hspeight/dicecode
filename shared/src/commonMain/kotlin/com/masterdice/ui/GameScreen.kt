@@ -92,6 +92,21 @@ import kotlin.math.roundToInt
 private val WellShape = RoundedCornerShape(10.dp)
 private val TrayShape = RoundedCornerShape(16.dp)
 
+/** Dark recessed panel with a warm bronze rim, lit from above — tray and grid. */
+private fun Modifier.bronzeFrame(padding: Dp): Modifier =
+    clip(TrayShape)
+        .background(MasterDiceColors.TrayFill)
+        .border(
+            2.dp,
+            Brush.verticalGradient(
+                0f to MasterDiceColors.TrayRimTop,
+                0.5f to MasterDiceColors.TrayRim,
+                1f to MasterDiceColors.TrayRimBottom,
+            ),
+            TrayShape,
+        )
+        .padding(padding)
+
 @Composable
 fun GameScreen(
     state: GameState,
@@ -134,11 +149,12 @@ fun GameScreen(
     ) {
         val maxBoardWidth = if (maxWidth > 480.dp) 480.dp else maxWidth
         val gap = 6.dp
-        // Rows are [3 wells][enter cell]; the tray is [4 wells].
+        // Rows are [3 wells][enter cell]; the tray is [4 wells]. Both get a
+        // bronzeFrame: +2 gaps of inner padding and 4dp of border.
         val widthCell =
-            (maxBoardWidth - 16.dp - gap * TRAY_SIZE) / TRAY_SIZE
-        // 11 cell-rows (10 grid + tray) plus title, captions and spacing.
-        val heightCell = (maxHeight - 126.dp - gap * 12) / 11f
+            (maxBoardWidth - 20.dp - gap * (TRAY_SIZE + 1)) / TRAY_SIZE
+        // 11 cell-rows (10 grid + tray) plus title, captions, frame chrome.
+        val heightCell = (maxHeight - 142.dp - gap * 12) / 11f
         val cell = if (widthCell < heightCell) widthCell else heightCell
         val dieSize = cell * 0.82f
         val trayDieSize = cell * 0.94f
@@ -231,7 +247,7 @@ fun GameScreen(
                 }
             }
 
-            Box {
+            Box(modifier = Modifier.bronzeFrame(gap)) {
                 Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                     for (row in ROWS - 1 downTo 0) {
                         GuessRow(
@@ -1255,19 +1271,7 @@ private fun TrayRow(
     onIntent: (GameIntent) -> Unit,
 ) {
     Row(
-        modifier = Modifier
-            .clip(TrayShape)
-            .background(MasterDiceColors.TrayFill)
-            .border(
-                2.dp,
-                Brush.verticalGradient(
-                    0f to MasterDiceColors.TrayRimTop,
-                    0.5f to MasterDiceColors.TrayRim,
-                    1f to MasterDiceColors.TrayRimBottom,
-                ),
-                TrayShape,
-            )
-            .padding(gap),
+        modifier = Modifier.bronzeFrame(gap),
         horizontalArrangement = Arrangement.spacedBy(gap),
     ) {
         for (i in 0 until TRAY_SIZE) {
