@@ -670,18 +670,18 @@ private fun HelpPanel(
             Spacer(Modifier.height(12.dp))
             RuleText("A hidden sequence of three dice is the solution. The tray holds those three plus one decoy — work out which three belong, and in what order.")
             Spacer(Modifier.height(8.dp))
-            RuleText("Drag dice from the tray into the row — or tap a tray die to fill the first free cell. Tap a placed die to return it to the tray. Tap enter to submit. You have $ROWS guesses.")
+            RuleText("Drag dice from the tray into the active row — or tap a tray die to fill the first free cell. Tap or drag a placed die to return it to the tray. You have $ROWS guesses.")
             Spacer(Modifier.height(12.dp))
             if (showMatchIndicators) {
-                RuleLine("■", MasterDiceColors.GreenBorder, "Colour and value match that column's hidden die")
-                RuleLine("■", MasterDiceColors.AmberBorder, "Colour or value matches — not both")
-                RuleLine("□", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
+                RuleLine("■", MasterDiceColors.GreenBorder, "Correct colour AND value")
+                RuleLine("■", MasterDiceColors.AmberBorder, "Correct colour OR value")
+                //RuleLine("□", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
             } else {
-                RuleText("Match indicators are off — each submitted row shows a peg for every column:")
+                //RuleText("Match indicators are off — each submitted row shows a peg for every column:")
                 Spacer(Modifier.height(8.dp))
-                RuleLine("●", MasterDiceColors.GreenBorder, "Colour and value match")
-                RuleLine("●", MasterDiceColors.AmberBorder, "Colour or value matches — not both")
-                RuleLine("●", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
+                RuleLine("●", MasterDiceColors.GreenBorder, "Correct colour AND value")
+                RuleLine("●", MasterDiceColors.AmberBorder, "Correct colour OR value")
+                //RuleLine("●", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
             }
             Spacer(Modifier.height(16.dp))
             BasicText(
