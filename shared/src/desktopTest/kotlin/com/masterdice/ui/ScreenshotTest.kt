@@ -166,11 +166,7 @@ class ScreenshotTest {
         setContent {
             GameScreen(state = s, onIntent = { s = reduce(s, it) }, onNewGame = {})
         }
-        onNodeWithTag("settings").performClick()
-        waitForIdle()
-        onNodeWithTag("toggleMatchIndicators").performClick()
-        onNodeWithTag("settingsDone").performClick()
-        waitForIdle()
+        // Indicators default to off; the board shows count-only peg feedback.
         ImageIO.write(
             onRoot().captureToImage().toAwtImage(), "png",
             File(tmpDir(), "indicators-hidden.png"),

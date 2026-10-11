@@ -110,7 +110,7 @@ fun GameScreen(
     var showHelp by remember { mutableStateOf(false) }
     var showDealPicker by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
-    var showMatchIndicators by remember { mutableStateOf(true) }
+    var showMatchIndicators by remember { mutableStateOf(false) }
     val reveal = remember { Animatable(1f) }
     LaunchedEffect(state.guesses.size) {
         if (state.guesses.size > revealedRows) {
