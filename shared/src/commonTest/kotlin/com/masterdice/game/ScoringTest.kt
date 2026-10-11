@@ -31,15 +31,17 @@ class ScoringTest {
     }
 
     @Test
-    fun overParWinStillPaysBase() {
-        assertEquals(100, scoreWin(l1, 5))
-        assertEquals(100, scoreWin(l1, 10))
+    fun overParWinLosesBonusPerGuess() {
+        assertEquals(75, scoreWin(l1, 4))
+        assertEquals(50, scoreWin(l1, 5))
     }
 
     @Test
-    fun everyLevelPaysAtLeastBaseOnWin() {
+    fun overParWinIsFloored() {
+        assertEquals(40, scoreWin(l1, 6))
+        assertEquals(40, scoreWin(l1, 10))
         for (level in LEVELS) {
-            assertTrue(scoreWin(level, 10) >= level.base, "level ${level.index}")
+            assertEquals(level.floor, scoreWin(level, 10), "level ${level.index}")
         }
     }
 

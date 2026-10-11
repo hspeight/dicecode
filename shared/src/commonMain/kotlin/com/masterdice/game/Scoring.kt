@@ -19,8 +19,11 @@ data class Level(
 ) {
     val decoys: Int get() = traySize - cols
 
-    /** Points added per guess under par (25% of base). */
+    /** Points added per guess under par — and removed per guess over (25%). */
     val bonus: Int get() = (base / 4f).roundToInt()
+
+    /** Minimum win payout (40% of base) — always above the 34% max loss. */
+    val floor: Int get() = (base * 0.4f).roundToInt()
 }
 
 val LEVELS = listOf(
@@ -33,10 +36,11 @@ val LEVELS = listOf(
     Level(6, cols = 4, traySize = 8, par = 5, bound = null, base = 700),
 )
 
-/** Win in [guesses] guesses: base plus a bonus per guess under par. A first
- *  guess is pure luck, so `max(guesses, 2)` caps it at guess-2 credit. */
+/** Win in [guesses] guesses: base plus a bonus per guess under par and minus
+ *  the same per guess over, floored so any win beats any loss. A first guess
+ *  is pure luck, so `max(guesses, 2)` caps it at guess-2 credit. */
 fun scoreWin(level: Level, guesses: Int): Int =
-    level.base + level.bonus * maxOf(0, level.par - maxOf(guesses, 2))
+    maxOf(level.floor, level.base + level.bonus * (level.par - maxOf(guesses, 2)))
 
 /**
  * The strongest single guess: most greens, then most ambers, then earliest.
