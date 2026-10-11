@@ -229,7 +229,11 @@ class EngineTest {
     fun undoGuessRestoresPreSubmitStateExactly() {
         val preSubmit = losingGuess()
         val submitted = reduce(preSubmit, GameIntent.Submit)
-        assertEquals(preSubmit, reduce(submitted, GameIntent.UndoGuess))
+        // Undo restores every field but marks the game unscored.
+        assertEquals(
+            preSubmit.copy(scored = false),
+            reduce(submitted, GameIntent.UndoGuess),
+        )
     }
 
     @Test
@@ -255,6 +259,48 @@ class EngineTest {
         assertEquals(solution, state.solution)
         assertEquals(solution + decoy, state.deal)
         assertEquals(GameStatus.PLAYING, state.status)
+    }
+
+    // ---------- scored flag ----------
+
+    @Test
+    fun regularGamesStartScored() {
+        assertTrue(newGame(7L).scored)
+    }
+
+    @Test
+    fun fixedDealIsUnscored() {
+        val state = reduce(
+            newGame(7L),
+            GameIntent.NewGameWithDeal(
+                listOf(d(DieColour.RED, 1), d(DieColour.BLUE, 2), d(DieColour.GREEN, 3)),
+                d(DieColour.ORANGE, 4),
+            ),
+        )
+        assertFalse(state.scored)
+    }
+
+    @Test
+    fun undoGuessMarksGameUnscored() {
+        val submitted = reduce(losingGuess(), GameIntent.Submit)
+        assertTrue(submitted.scored)
+        assertFalse(reduce(submitted, GameIntent.UndoGuess).scored)
+    }
+
+    @Test
+    fun unscoredLatchSurvivesLaterMoves() {
+        var state = reduce(losingGuess(), GameIntent.Submit)
+        state = reduce(state, GameIntent.UndoGuess)
+        state = reduce(state, GameIntent.TapMove(Slot.Cell(1, 0)))
+        state = reduce(state, GameIntent.Submit)
+        assertFalse(state.scored)
+    }
+
+    @Test
+    fun noOpUndoKeepsGameScored() {
+        val state = newGame(7L)
+        assertSame(state, reduce(state, GameIntent.UndoGuess))
+        assertTrue(reduce(state, GameIntent.UndoGuess).scored)
     }
 
     // ---------- tap-to-move ----------

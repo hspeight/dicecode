@@ -6,7 +6,7 @@ const val ROWS = 10
 const val GUESS_SIZE = 3
 const val TRAY_SIZE = 4
 
-const val SAVE_VERSION = 2
+const val SAVE_VERSION = 3
 
 @Serializable
 enum class DieColour { RED, BLUE, GREEN, ORANGE, PINK, TEAL }
@@ -44,6 +44,10 @@ data class GameState(
     val guesses: List<Guess>,
     val status: GameStatus,
     val seed: Long,
+    /** False once a debug tool touched the game; such games don't earn points. */
+    val scored: Boolean = true,
+    /** Index into [LEVELS]; only level 0 is playable until levels ship. */
+    val levelIndex: Int = 0,
 ) {
     val activeRow: Int get() = guesses.size
 

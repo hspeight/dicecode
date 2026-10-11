@@ -4,8 +4,10 @@ import com.masterdice.data.GameStore
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotSame
 import kotlin.test.assertSame
+import kotlin.test.assertTrue
 import okio.fakefilesystem.FakeFileSystem
 
 class GameViewModelTest {
@@ -62,5 +64,82 @@ class GameViewModelTest {
         vm.newGame()
         assertNotSame(before, vm.state.value)
         assertEquals(GameStatus.PLAYING, vm.state.value.status)
+    }
+
+    // ---------- scoring ----------
+
+    /** Wins the current game outright by placing every solution die. */
+    private fun GameViewModel.playWin() {
+        val state = state.value
+        state.solution.forEachIndexed { col, die ->
+            dispatch(GameIntent.Move(Slot.Tray(state.deal.indexOf(die)), Slot.Cell(0, col)))
+        }
+        dispatch(GameIntent.Submit)
+    }
+
+    @Test
+    fun winningGameRecordsAndPersistsBestScore() {
+        val fs = FakeFileSystem()
+        val vm = GameViewModel(GameStore("/saves", fs), Random(5))
+        vm.playWin()
+
+        assertEquals(GameStatus.WON, vm.state.value.status)
+        val expected = scoreWin(LEVELS[0], 1)
+        assertEquals(expected, vm.stats.value.bestScores[0])
+        assertTrue(vm.newBest.value)
+
+        // Stats persist across store/ViewModel instances.
+        val vm2 = GameViewModel(GameStore("/saves", fs), Random(0))
+        assertEquals(expected, vm2.stats.value.bestScores[0])
+    }
+
+    /** Loses on purpose: every submitted row contains the decoy. */
+    private fun GameViewModel.playLosingGame() {
+        val deal = state.value.deal
+        val decoy = deal.first { it !in state.value.solution }
+        val fillers = state.value.solution.take(2)
+        repeat(ROWS) {
+            (listOf(decoy) + fillers).forEachIndexed { col, die ->
+                dispatch(
+                    GameIntent.Move(
+                        Slot.Tray(state.value.deal.indexOf(die)),
+                        Slot.Cell(state.value.activeRow, col),
+                    ),
+                )
+            }
+            dispatch(GameIntent.Submit)
+        }
+    }
+
+    @Test
+    fun weakerScoreDoesNotOverwriteBest() {
+        val vm = GameViewModel(null, Random(5))
+        vm.playWin() // 125, becomes best
+        vm.newGame()
+        assertFalse(vm.newBest.value)
+
+        // Losing pays at most 24 — it must not overwrite the 125 best.
+        vm.playLosingGame()
+        assertEquals(GameStatus.LOST, vm.state.value.status)
+        assertEquals(125, vm.stats.value.bestScores[0])
+        assertFalse(vm.newBest.value)
+    }
+
+    @Test
+    fun unscoredGameDoesNotRecord() {
+        val vm = GameViewModel(null, Random(5))
+        vm.dispatch(
+            GameIntent.NewGameWithDeal(
+                listOf(
+                    Die(DieColour.RED, 1), Die(DieColour.BLUE, 2), Die(DieColour.GREEN, 3),
+                ),
+                Die(DieColour.ORANGE, 4),
+            ),
+        )
+        vm.playWin()
+
+        assertEquals(GameStatus.WON, vm.state.value.status)
+        assertTrue(vm.stats.value.bestScores.isEmpty())
+        assertFalse(vm.newBest.value)
     }
 }

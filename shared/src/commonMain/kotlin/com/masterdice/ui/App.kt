@@ -14,9 +14,13 @@ fun App() {
         GameViewModel(GameStore(defaultStorageDir()))
     }
     val state by viewModel.state.collectAsState()
+    val stats by viewModel.stats.collectAsState()
+    val newBest by viewModel.newBest.collectAsState()
     GameScreen(
         state = state,
         onIntent = viewModel::dispatch,
         onNewGame = viewModel::newGame,
+        bestScore = stats.bestScores[state.levelIndex],
+        newBest = newBest,
     )
 }

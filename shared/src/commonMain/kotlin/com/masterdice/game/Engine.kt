@@ -109,9 +109,13 @@ fun evaluate(guess: List<Die>, solution: List<Die>): List<Feedback> =
 fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
     is GameIntent.NewGame -> newGame(intent.seed)
 
-    is GameIntent.NewGameWithDeal -> newGame(intent.solution, intent.decoy)
+    is GameIntent.NewGameWithDeal ->
+        newGame(intent.solution, intent.decoy).copy(scored = false)
 
-    GameIntent.UndoGuess -> undoGuess(state)
+    GameIntent.UndoGuess -> {
+        val undone = undoGuess(state)
+        if (undone === state) state else undone.copy(scored = false)
+    }
 
     is GameIntent.Move -> {
         if (!isLegalMove(state, intent.from, intent.to)) return state

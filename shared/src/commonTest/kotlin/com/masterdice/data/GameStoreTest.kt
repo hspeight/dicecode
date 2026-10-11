@@ -48,4 +48,26 @@ class GameStoreTest {
         assertNull(store.load())
         assertNull(store.load())
     }
+
+    @Test
+    fun statsRoundTrip() {
+        val fs = FakeFileSystem()
+        val store = GameStore("/saves", fs)
+
+        assertEquals(GameStore.GameStats(), store.loadStats())
+
+        store.saveStats(GameStore.GameStats(mapOf(0 to 125, 4 to 526)))
+        assertEquals(mapOf(0 to 125, 4 to 526), store.loadStats().bestScores)
+
+        // A second store on the same fs sees the same file.
+        assertEquals(mapOf(0 to 125, 4 to 526), GameStore("/saves", fs).loadStats().bestScores)
+    }
+
+    @Test
+    fun corruptStatsLoadsDefault() {
+        val fs = FakeFileSystem()
+        fs.createDirectories("/saves".toPath())
+        fs.write("/saves/stats.json".toPath()) { writeUtf8("{ not json !!!") }
+        assertEquals(GameStore.GameStats(), GameStore("/saves", fs).loadStats())
+    }
 }

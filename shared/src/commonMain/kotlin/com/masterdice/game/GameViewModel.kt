@@ -15,15 +15,46 @@ class GameViewModel(
     private val _state = MutableStateFlow(store?.load() ?: newGame(random.nextLong()))
     val state: StateFlow<GameState> = _state.asStateFlow()
 
+    private val _stats = MutableStateFlow(store?.loadStats() ?: GameStore.GameStats())
+    val stats: StateFlow<GameStore.GameStats> = _stats.asStateFlow()
+
+    /** True while the end panel of a record-breaking game is on screen. */
+    private val _newBest = MutableStateFlow(false)
+    val newBest: StateFlow<Boolean> = _newBest.asStateFlow()
+
     fun dispatch(intent: GameIntent) {
-        val next = reduce(_state.value, intent)
-        if (next !== _state.value) {
+        val previous = _state.value
+        val next = reduce(previous, intent)
+        if (next !== previous) {
+            if (intent is GameIntent.NewGame || intent is GameIntent.NewGameWithDeal) {
+                _newBest.value = false
+            }
             _state.value = next
             store?.save(next)
+            recordScore(previous, next)
         }
     }
 
     fun newGame() {
         dispatch(GameIntent.NewGame(random.nextLong()))
+    }
+
+    /** On the transition to WON/LOST, bank the score into per-level bests —
+     *  unless a debug tool touched the game (`scored == false`). */
+    private fun recordScore(previous: GameState, next: GameState) {
+        if (previous.status == GameStatus.PLAYING && next.status != GameStatus.PLAYING &&
+            next.scored
+        ) {
+            val level = LEVELS[next.levelIndex]
+            val points = gameScore(next, level) ?: return
+            val best = _stats.value.bestScores[level.index]
+            if (best == null || points > best) {
+                _stats.value = _stats.value.copy(
+                    bestScores = _stats.value.bestScores + (level.index to points),
+                )
+                _newBest.value = true
+                store?.saveStats(_stats.value)
+            }
+        }
     }
 }

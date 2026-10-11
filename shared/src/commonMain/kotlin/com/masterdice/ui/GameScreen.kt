@@ -61,6 +61,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -75,9 +76,11 @@ import com.masterdice.game.GameIntent
 import com.masterdice.game.GameState
 import com.masterdice.game.GameStatus
 import com.masterdice.game.GUESS_SIZE
+import com.masterdice.game.LEVELS
 import com.masterdice.game.ROWS
 import com.masterdice.game.Slot
 import com.masterdice.game.TRAY_SIZE
+import com.masterdice.game.gameScore
 import com.masterdice.game.isLegalMove
 import com.masterdice.platform.debugToolsEnabled
 import com.masterdice.resources.Res
@@ -93,6 +96,8 @@ fun GameScreen(
     state: GameState,
     onIntent: (GameIntent) -> Unit,
     onNewGame: () -> Unit,
+    bestScore: Int? = null,
+    newBest: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val dd = rememberDragDropState()
@@ -230,7 +235,13 @@ fun GameScreen(
                     }
                 }
                 if (state.status != GameStatus.PLAYING) {
-                    EndPanel(state, onNewGame, Modifier.matchParentSize())
+                    EndPanel(
+                        state,
+                        onNewGame,
+                        Modifier.matchParentSize(),
+                        bestScore = bestScore,
+                        newBest = newBest,
+                    )
                 }
             }
 
@@ -1252,7 +1263,15 @@ private fun TrayRow(
 }
 
 @Composable
-private fun EndPanel(state: GameState, onNewGame: () -> Unit, modifier: Modifier = Modifier) {
+private fun EndPanel(
+    state: GameState,
+    onNewGame: () -> Unit,
+    modifier: Modifier = Modifier,
+    bestScore: Int? = null,
+    newBest: Boolean = false,
+) {
+    val level = LEVELS[state.levelIndex]
+    val score = gameScore(state, level)
     Box(
         modifier = modifier
             .testTag("endPanel")
@@ -1278,6 +1297,51 @@ private fun EndPanel(state: GameState, onNewGame: () -> Unit, modifier: Modifier
                     fontWeight = FontWeight.Bold,
                 ),
             )
+            Spacer(Modifier.height(4.dp))
+            BasicText(
+                text = "Par ${level.par} · always solvable in ${level.bound ?: level.traySize}",
+                style = TextStyle(
+                    color = MasterDiceColors.Ivory.copy(alpha = 0.45f),
+                    fontSize = 11.sp,
+                    letterSpacing = 0.5.sp,
+                ),
+            )
+            Spacer(Modifier.height(8.dp))
+            if (state.scored && score != null) {
+                BasicText(
+                    text = "+$score pts",
+                    style = TextStyle(
+                        color = MasterDiceColors.BrassBright,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                    modifier = Modifier
+                        .testTag("endPanelScore")
+                        .semantics { contentDescription = "Score: $score points" },
+                )
+                BasicText(
+                    text = if (newBest) "NEW BEST"
+                    else bestScore?.let { "BEST $it" } ?: "",
+                    style = TextStyle(
+                        color = if (newBest) MasterDiceColors.BrassBright.copy(alpha = 0.8f)
+                        else MasterDiceColors.Ivory.copy(alpha = 0.45f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp,
+                    ),
+                    modifier = Modifier.padding(top = 2.dp),
+                )
+            } else if (!state.scored) {
+                BasicText(
+                    text = "Unscored game",
+                    style = TextStyle(
+                        color = MasterDiceColors.Ivory.copy(alpha = 0.4f),
+                        fontSize = 11.sp,
+                        fontStyle = FontStyle.Italic,
+                    ),
+                    modifier = Modifier.testTag("endPanelScore"),
+                )
+            }
             if (state.status == GameStatus.LOST) {
                 Spacer(Modifier.height(4.dp))
                 BasicText(
