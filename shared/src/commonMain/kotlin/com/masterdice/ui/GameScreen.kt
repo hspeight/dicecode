@@ -989,6 +989,15 @@ private fun BoxScope.GuessRow(
                 Box(
                     modifier = Modifier
                         .size(enterSize)
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(
+                            MasterDiceColors.Board.copy(alpha = 0.55f),
+                        )
+                        .border(
+                            1.dp,
+                            MasterDiceColors.SubmittedPanelBorder,
+                            RoundedCornerShape(5.dp),
+                        )
                         .semantics {
                             contentDescription =
                                 "Row ${row + 1}: $greens exact, $ambers partial matches"
@@ -996,17 +1005,6 @@ private fun BoxScope.GuessRow(
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(
-                                MasterDiceColors.Board.copy(alpha = 0.55f),
-                            )
-                            .border(
-                                1.dp,
-                                MasterDiceColors.SubmittedPanelBorder,
-                                RoundedCornerShape(5.dp),
-                            )
-                            .padding(4.dp),
                         verticalArrangement = Arrangement.spacedBy(3.dp),
                     ) {
                         val sorted = feedback.sortedBy { it.ordinal }
