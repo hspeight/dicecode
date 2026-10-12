@@ -165,8 +165,10 @@ fun GameScreen(
         val boardH = boardW * BOARD_ASPECT
         // One cell = one artwork well (500px of the 2367px-wide image).
         val cell = boardW * (BOARD_WELL_PX / 2367f)
-        // Dice fill their wells exactly — grid and tray share one size.
-        val dieSize = cell
+        // Dice sized just past the well edge so the rounded die covers the
+        // well's baked shadow rim — reads as seated, with no visible gap.
+        // Grid and tray share one size.
+        val dieSize = cell * 1.024f
 
         Column(
             modifier = Modifier
@@ -949,8 +951,7 @@ private fun BoxScope.GuessRow(
                 x = colX[3] + (cell - enterSize) / 2,
                 y = rowTop + (cell - enterSize) / 2,
             )
-            .size(enterSize)
-            .border(2.dp, MasterDiceColors.SubmittedPanelBorder, WellShape),
+            .size(enterSize),
         contentAlignment = Alignment.Center,
     ) {
         when {
