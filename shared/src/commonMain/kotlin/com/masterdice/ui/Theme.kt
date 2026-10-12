@@ -17,6 +17,10 @@ object MasterDiceColors {
     val SubmittedPanel = Color(0xFF141C2A)
     val SubmittedPanelBorder = Color(0xFF33425C)
 
+    // Column-4 well repaint — sampled from the board artwork.
+    val EnterWellBg = Color(0xFF343D51)
+    val EnterWell = Color(0xFF3D5176)
+
     // Felt vignette (Stitch tabletop-felt, in the board's slate range).
     val FeltLight = Color(0xFF1F3050)
     val FeltMid = Color(0xFF111B2E)
