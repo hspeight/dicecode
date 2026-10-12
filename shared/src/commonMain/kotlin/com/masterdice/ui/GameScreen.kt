@@ -161,7 +161,7 @@ fun GameScreen(
         val boardW = minOf(
             maxBoardWidth - 16.dp,
             (maxHeight - 80.dp) / (BOARD_ASPECT + 697f / 2367f),
-        )
+        ) * 0.81f
         val boardH = boardW * BOARD_ASPECT
         // One cell = one artwork well (500px of the 2367px-wide image).
         val cell = boardW * (BOARD_WELL_PX / 2367f)
@@ -941,19 +941,27 @@ private fun BoxScope.GuessRow(
     }
 
     // Column 4: enter cell on the active row, feedback pegs on submitted rows.
+    // The cell is sized to the enter key and centered in the artwork well.
+    val enterSize = dieSize * 0.9f
     Box(
-        modifier = Modifier.absoluteOffset(x = colX[3], y = rowTop).size(cell),
+        modifier = Modifier
+            .absoluteOffset(
+                x = colX[3] + (cell - enterSize) / 2,
+                y = rowTop + (cell - enterSize) / 2,
+            )
+            .size(enterSize)
+            .border(2.dp, MasterDiceColors.SubmittedPanelBorder, WellShape),
         contentAlignment = Alignment.Center,
     ) {
         when {
-            isActive -> EnterCell(state, dieSize, onIntent)
+            isActive -> EnterCell(state, enterSize, onIntent)
             isSubmitted -> {
                 val feedback = state.guesses[row].feedback
                 val greens = feedback.count { it == Feedback.GREEN }
                 val ambers = feedback.count { it == Feedback.AMBER }
                 Box(
                     modifier = Modifier
-                        .size(cell)
+                        .size(enterSize)
                         .semantics {
                             contentDescription =
                                 "Row ${row + 1}: $greens exact, $ambers partial matches"
