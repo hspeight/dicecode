@@ -90,19 +90,20 @@ import kotlin.math.roundToInt
 
 private val WellShape = RoundedCornerShape(10.dp)
 
-// board_4x10.png geometry (pixels of the 1016x2366 artwork): square wells on a
-// uniform grid — 3 guess columns plus the lighter return-key column.
-private const val BOARD_ASPECT = 2366f / 1016f
-private const val BOARD_WELL_PX = 216f
-private val BOARD_COLS_PX = floatArrayOf(39f, 269f, 499f, 758f)
-private const val BOARD_ROW_TOP_PX = 45f
-private const val BOARD_ROW_PITCH_PX = 230f
+// board_4x10.png geometry (pixels of the 2367x5483 source artwork; the
+// bundled resource is a 0.6x downscale — identical fractions): square wells
+// on a uniform grid — 3 guess columns plus the lighter return-key column.
+private const val BOARD_ASPECT = 5483f / 2367f
+private const val BOARD_WELL_PX = 500f
+private val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f, 1769f)
+private const val BOARD_ROW_TOP_PX = 98f
+private const val BOARD_ROW_PITCH_PX = 531.8f
 
-// deal_tray.png is 986x296; rendered at boardW*986/1016 wide, its wells land
+// deal_tray.png is 2292x697; rendered at boardW*2292/2367 wide, its wells land
 // on exactly the same grid as the board's.
-private const val TRAY_ASPECT = 296f / 986f
-private val TRAY_COLS_PX = floatArrayOf(39f, 269f, 499f, 729f)
-private const val TRAY_ROW_TOP_PX = 39f
+private const val TRAY_ASPECT = 697f / 2292f
+private val TRAY_COLS_PX = floatArrayOf(98f, 630f, 1162f, 1693f)
+private const val TRAY_ROW_TOP_PX = 98f
 
 @Composable
 fun GameScreen(
@@ -159,13 +160,13 @@ fun GameScreen(
         // height budget once the header and spacers are paid for.
         val boardW = minOf(
             maxBoardWidth - 16.dp,
-            (maxHeight - 80.dp) / (BOARD_ASPECT + 296f / 1016f),
+            (maxHeight - 80.dp) / (BOARD_ASPECT + 697f / 2367f),
         )
         val boardH = boardW * BOARD_ASPECT
-        // One cell = one artwork well (216px of the 1016px-wide image).
-        val cell = boardW * (BOARD_WELL_PX / 1016f)
-        val dieSize = cell * 0.82f
-        val trayDieSize = cell * 0.94f
+        // One cell = one artwork well (500px of the 2367px-wide image).
+        val cell = boardW * (BOARD_WELL_PX / 2367f)
+        // Dice snugly fill their wells — grid and tray share one size.
+        val dieSize = cell * 0.94f
 
         Column(
             modifier = Modifier
@@ -306,12 +307,13 @@ fun GameScreen(
 //            }
 //            Spacer(Modifier.height(4.dp))
 
-            TrayRow(state, boardW, cell, trayDieSize, dd, onIntent)
+            TrayRow(state, boardW, cell, dieSize, dd, onIntent)
         }
 
-        DragOverlay(dd, dieSize, trayDieSize)
+        DragOverlay(dd, dieSize)
 
-        // Hint bubble above an empty active cell that was tapped.
+        // Hint bubble above an empty active cell that was tapped, plus a
+        // finger bouncing over the deal tray.
         hintCell?.let { slot ->
             dd.centerOf(slot)?.let { center ->
                 HintBubble(
@@ -320,6 +322,7 @@ fun GameScreen(
                     onDismiss = { hintCell = null },
                 )
             }
+            TrayPointer(dd, visible = true)
         }
 
         if (showHelp) {
@@ -903,9 +906,9 @@ private fun BoxScope.GuessRow(
     val isSubmitted = row < state.guesses.size
 
     // Artwork well positions in board-width fractions.
-    val colX = BOARD_COLS_PX.map { boardW * (it / 1016f) }
+    val colX = BOARD_COLS_PX.map { boardW * (it / 2367f) }
     val rowTop =
-        boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 1016f)
+        boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 2367f)
 
     for (col in 0 until GUESS_SIZE) {
         val slot = Slot.Cell(row, col)
@@ -940,9 +943,10 @@ private fun BoxScope.GuessRow(
     // Column 4: enter cell on the active row, feedback pegs on submitted rows.
     Box(
         modifier = Modifier.absoluteOffset(x = colX[3], y = rowTop).size(cell),
+        contentAlignment = Alignment.Center,
     ) {
         when {
-            isActive -> EnterCell(state, cell, onIntent)
+            isActive -> EnterCell(state, dieSize, onIntent)
             isSubmitted -> {
                 val feedback = state.guesses[row].feedback
                 val greens = feedback.count { it == Feedback.GREEN }
@@ -1173,11 +1177,11 @@ private fun CellWell(
 }
 
 @Composable
-private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit) {
+private fun EnterCell(state: GameState, size: Dp, onIntent: (GameIntent) -> Unit) {
     val enabled = state.canSubmit
     Box(
         modifier = Modifier
-            .size(cell)
+            .size(size)
             .testTag("enter")
             .semantics {
                 contentDescription =
@@ -1211,9 +1215,9 @@ private fun TrayRow(
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
-    val trayW = boardW * (986f / 1016f)
-    val colX = TRAY_COLS_PX.map { trayW * (it / 986f) }
-    val rowTop = trayW * (TRAY_ROW_TOP_PX / 986f)
+    val trayW = boardW * (2292f / 2367f)
+    val colX = TRAY_COLS_PX.map { trayW * (it / 2292f) }
+    val rowTop = trayW * (TRAY_ROW_TOP_PX / 2292f)
 
     Box(modifier = Modifier.size(trayW, trayW * TRAY_ASPECT)) {
         Image(
@@ -1393,7 +1397,7 @@ private fun EndPanel(
 }
 
 @Composable
-private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp, trayDieSize: Dp) {
+private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp) {
     val session = dd.session ?: return
     val returnOffset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
 
@@ -1407,8 +1411,7 @@ private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp, trayDieSize: Dp
     }
 
     val pos = if (session.returning) returnOffset.value else session.offset
-    val overlaySize = if (session.from is Slot.Tray) trayDieSize else dieSize
-    val half = overlaySize / 2
+    val half = dieSize / 2
 
     Box(
         modifier = Modifier
@@ -1416,9 +1419,9 @@ private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp, trayDieSize: Dp
             .testTag("dragOverlay")
             .offset { IntOffset((pos.x - half.toPx()).roundToInt(), (pos.y - half.toPx()).roundToInt()) }
             .graphicsLayer { scaleX = 1.12f; scaleY = 1.12f }
-            .shadow(12.dp, RoundedCornerShape(overlaySize * 0.18f)),
+            .shadow(12.dp, RoundedCornerShape(dieSize * 0.18f)),
     ) {
-        DieView(session.die, overlaySize)
+        DieView(session.die, dieSize)
     }
 }
 
@@ -1477,6 +1480,65 @@ private fun HintBubble(anchor: Offset, aboveBy: Dp, onDismiss: () -> Unit) {
                 color = MasterDiceColors.Ivory,
                 fontSize = 11.sp,
             ),
+        )
+    }
+}
+
+/** Pointing hand bobbing beside the deal tray, shown while the empty-cell
+ * hint is up. Decorative — the message lives on the bubble. */
+@Composable
+private fun TrayPointer(dd: DragDropState, visible: Boolean) {
+    val left = dd.boundsOf(Slot.Tray(0))
+    if (left == null) return
+    // Tip lands at the tray's left edge, mid-height — the hand sits to the
+    // left of the tray pointing right at it.
+    val tip = Offset(left.left, left.center.y)
+
+    val appear = remember { Animatable(0f) }
+    val bob = remember { Animatable(0f) }
+    LaunchedEffect(visible) {
+        if (visible) {
+            appear.snapTo(0f)
+            appear.animateTo(1f, tween(300))
+            // Finite dips — an infinite loop would keep the effect clock
+            // running past the hint's own auto-dismiss (and block tests'
+            // waitForIdle). Roughly matches the 2.2s hint lifetime.
+            repeat(3) {
+                bob.animateTo(1f, tween(300))
+                bob.animateTo(0f, tween(300))
+            }
+        } else {
+            appear.snapTo(0f)
+            bob.snapTo(0f)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .testTag("trayPointer")
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) {
+                    placeable.place(
+                        // Glyph right edge = fingertip; the bob nudges it
+                        // toward the tray.
+                        x = (tip.x - placeable.width - 6.dp.toPx() +
+                            bob.value * 5.dp.toPx()).roundToInt()
+                            .coerceAtLeast(0),
+                        y = (tip.y - placeable.height / 2f).roundToInt(),
+                    )
+                }
+            }
+            .graphicsLayer {
+                alpha = appear.value
+                val s = 0.6f + 0.4f * appear.value
+                scaleX = s
+                scaleY = s
+            },
+    ) {
+        BasicText(
+            text = "👉",
+            style = TextStyle(fontSize = 38.sp),
         )
     }
 }

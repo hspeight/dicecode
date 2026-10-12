@@ -202,8 +202,13 @@ class GameScreenTest {
         }
         waitForIdle()
 
+        // Freeze the clock so the hint's auto-dismiss timer can't fire
+        // before the assertions (waitForIdle would advance past it).
+        mainClock.autoAdvance = false
         onNodeWithTag("cell-0-1").performClick()
-        waitForIdle()
+        mainClock.advanceTimeByFrame()
         onNodeWithTag("cellHint").fetchSemanticsNode()
+        onNodeWithTag("trayPointer").fetchSemanticsNode()
+        mainClock.autoAdvance = true
     }
 }

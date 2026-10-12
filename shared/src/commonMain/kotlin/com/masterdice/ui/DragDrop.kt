@@ -44,6 +44,8 @@ class DragDropState {
 
     fun centerOf(slot: Slot): Offset? = bounds[slot]?.center
 
+    fun boundsOf(slot: Slot): Rect? = bounds[slot]
+
     fun begin(from: Slot, die: Die) {
         session = DragSession(from = from, die = die, offset = centerOf(from) ?: Offset.Zero)
     }
