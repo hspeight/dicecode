@@ -165,8 +165,8 @@ fun GameScreen(
         val boardH = boardW * BOARD_ASPECT
         // One cell = one artwork well (500px of the 2367px-wide image).
         val cell = boardW * (BOARD_WELL_PX / 2367f)
-        // Dice snugly fill their wells — grid and tray share one size.
-        val dieSize = cell * 0.94f
+        // Dice fill their wells exactly — grid and tray share one size.
+        val dieSize = cell
 
         Column(
             modifier = Modifier
