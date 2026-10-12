@@ -189,4 +189,21 @@ class GameScreenTest {
         assertEquals(null, state.activeCells[0])
         assertEquals(dieA, state.tray[0])
     }
+
+    @Test
+    fun emptyActiveCellTapShowsHint() = runComposeUiTest {
+        var state by mutableStateOf(newGame(7L))
+        setContent {
+            GameScreen(
+                state = state,
+                onIntent = { intent -> state = reduce(state, intent) },
+                onNewGame = {},
+            )
+        }
+        waitForIdle()
+
+        onNodeWithTag("cell-0-1").performClick()
+        waitForIdle()
+        onNodeWithTag("cellHint").fetchSemanticsNode()
+    }
 }

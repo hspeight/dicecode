@@ -21,16 +21,6 @@ object MasterDiceColors {
     val FeltLight = Color(0xFF1F3050)
     val FeltMid = Color(0xFF111B2E)
     val FeltDark = Color(0xFF070D17)
-
-    // Tray cell wells, drawn to match the die corner radius (board_well.png).
-    val WellFill = Color(0xFF2C3A52)
-    val WellRim = Color(0xFF152238)
-
-    // Deal tray: dark recessed well with a warm bronze rim, lit from above.
-    val TrayFill = Color(0xFF1C1410)
-    val TrayRimTop = Color(0xFF9A6339)
-    val TrayRim = Color(0xFF6E4426)
-    val TrayRimBottom = Color(0xFF2E1C0E)
 }
 
 fun colourName(colour: DieColour): String = when (colour) {

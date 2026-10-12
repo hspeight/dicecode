@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -44,13 +45,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -80,29 +80,29 @@ import com.masterdice.game.gameScore
 import com.masterdice.game.isLegalMove
 import com.masterdice.platform.debugToolsEnabled
 import com.masterdice.resources.Res
-import com.masterdice.resources.board_well
+import com.masterdice.resources.board_4x10
+import com.masterdice.resources.deal_tray
 import com.masterdice.resources.enter_key
 import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
+import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
 private val WellShape = RoundedCornerShape(10.dp)
-private val TrayShape = RoundedCornerShape(16.dp)
 
-/** Dark recessed panel with a warm bronze rim, lit from above — tray and grid. */
-private fun Modifier.bronzeFrame(padding: Dp): Modifier =
-    clip(TrayShape)
-        .background(MasterDiceColors.TrayFill)
-        .border(
-            2.dp,
-            Brush.verticalGradient(
-                0f to MasterDiceColors.TrayRimTop,
-                0.5f to MasterDiceColors.TrayRim,
-                1f to MasterDiceColors.TrayRimBottom,
-            ),
-            TrayShape,
-        )
-        .padding(padding)
+// board_4x10.png geometry (pixels of the 1016x2366 artwork): square wells on a
+// uniform grid — 3 guess columns plus the lighter return-key column.
+private const val BOARD_ASPECT = 2366f / 1016f
+private const val BOARD_WELL_PX = 216f
+private val BOARD_COLS_PX = floatArrayOf(39f, 269f, 499f, 758f)
+private const val BOARD_ROW_TOP_PX = 45f
+private const val BOARD_ROW_PITCH_PX = 230f
+
+// deal_tray.png is 986x296; rendered at boardW*986/1016 wide, its wells land
+// on exactly the same grid as the board's.
+private const val TRAY_ASPECT = 296f / 986f
+private val TRAY_COLS_PX = floatArrayOf(39f, 269f, 499f, 729f)
+private const val TRAY_ROW_TOP_PX = 39f
 
 @Composable
 fun GameScreen(
@@ -123,7 +123,15 @@ fun GameScreen(
     var showDealPicker by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showMatchIndicators by remember { mutableStateOf(false) }
+    // Slot.Cell that last received an empty-cell tap; drives the hint bubble.
+    var hintCell by remember { mutableStateOf<Slot.Cell?>(null) }
     val reveal = remember { Animatable(1f) }
+    LaunchedEffect(hintCell) {
+        if (hintCell != null) {
+            delay(2200)
+            hintCell = null
+        }
+    }
     LaunchedEffect(state.guesses.size) {
         if (state.guesses.size > revealedRows) {
             reveal.snapTo(0f)
@@ -146,13 +154,16 @@ fun GameScreen(
     ) {
         val maxBoardWidth = if (maxWidth > 480.dp) 480.dp else maxWidth
         val gap = 6.dp
-        // Rows are [3 wells][enter cell]; the tray is [4 wells]. Both get a
-        // bronzeFrame: +2 gaps of inner padding and 4dp of border.
-        val widthCell =
-            (maxBoardWidth - 20.dp - gap * (TRAY_SIZE + 1)) / TRAY_SIZE
-        // 11 cell-rows (10 grid + tray) plus title, captions, frame chrome.
-        val heightCell = (maxHeight - 142.dp - gap * 12) / 11f
-        val cell = if (widthCell < heightCell) widthCell else heightCell
+        // Board and tray are fixed-aspect artworks scaled from boardW; its
+        // width is bound by whichever is tighter — the column width, or the
+        // height budget once the header and spacers are paid for.
+        val boardW = minOf(
+            maxBoardWidth - 16.dp,
+            (maxHeight - 80.dp) / (BOARD_ASPECT + 296f / 1016f),
+        )
+        val boardH = boardW * BOARD_ASPECT
+        // One cell = one artwork well (216px of the 1016px-wide image).
+        val cell = boardW * (BOARD_WELL_PX / 1016f)
         val dieSize = cell * 0.82f
         val trayDieSize = cell * 0.94f
 
@@ -244,21 +255,26 @@ fun GameScreen(
                 }
             }
 
-            Box(modifier = Modifier.bronzeFrame(gap)) {
-                Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-                    for (row in ROWS - 1 downTo 0) {
-                        GuessRow(
-                            state = state,
-                            row = row,
-                            cell = cell,
-                            dieSize = dieSize,
-                            gap = gap,
-                            dd = dd,
-                            onIntent = onIntent,
-                            feedbackShown = { col -> feedbackShown(row, col) },
-                            showMatchIndicator = showMatchIndicators,
-                        )
-                    }
+            Box(modifier = Modifier.size(boardW, boardH)) {
+                Image(
+                    painter = painterResource(Res.drawable.board_4x10),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier.matchParentSize(),
+                )
+                for (row in ROWS - 1 downTo 0) {
+                    GuessRow(
+                        state = state,
+                        row = row,
+                        boardW = boardW,
+                        cell = cell,
+                        dieSize = dieSize,
+                        dd = dd,
+                        onIntent = onIntent,
+                        feedbackShown = { col -> feedbackShown(row, col) },
+                        showMatchIndicator = showMatchIndicators,
+                        onEmptyTap = { slot -> hintCell = slot },
+                    )
                 }
                 if (state.status != GameStatus.PLAYING) {
                     EndPanel(
@@ -290,10 +306,21 @@ fun GameScreen(
 //            }
 //            Spacer(Modifier.height(4.dp))
 
-            TrayRow(state, cell, trayDieSize, gap, dd, onIntent)
+            TrayRow(state, boardW, cell, trayDieSize, dd, onIntent)
         }
 
         DragOverlay(dd, dieSize, trayDieSize)
+
+        // Hint bubble above an empty active cell that was tapped.
+        hintCell?.let { slot ->
+            dd.centerOf(slot)?.let { center ->
+                HintBubble(
+                    anchor = center,
+                    aboveBy = cell / 2 + 8.dp,
+                    onDismiss = { hintCell = null },
+                )
+            }
+        }
 
         if (showHelp) {
             HelpPanel(
@@ -858,60 +885,62 @@ private fun RuleLine(marker: String, color: Color, text: String) {
     }
 }
 
+/** One guess row overlaid on the board artwork's wells (row 0 = bottom). */
 @Composable
-private fun GuessRow(
+private fun BoxScope.GuessRow(
     state: GameState,
     row: Int,
+    boardW: Dp,
     cell: Dp,
     dieSize: Dp,
-    gap: Dp,
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
     feedbackShown: (Int) -> Boolean,
     showMatchIndicator: Boolean,
+    onEmptyTap: (Slot.Cell) -> Unit,
 ) {
     val isActive = state.status == GameStatus.PLAYING && row == state.activeRow
     val isSubmitted = row < state.guesses.size
 
-    Row(
-        modifier = rowPanelModifier(isActive, isSubmitted),
-        horizontalArrangement = Arrangement.spacedBy(gap),
-        verticalAlignment = Alignment.CenterVertically,
+    // Artwork well positions in board-width fractions.
+    val colX = BOARD_COLS_PX.map { boardW * (it / 1016f) }
+    val rowTop =
+        boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 1016f)
+
+    for (col in 0 until GUESS_SIZE) {
+        val slot = Slot.Cell(row, col)
+        val die = state.dieAt(slot)
+        val draggingAway = dd.session?.from == slot
+        val highlighted = dd.session?.let { isLegalMove(state, it.from, slot) } == true
+
+        val feedback = if (isSubmitted) state.guesses[row].feedback[col] else null
+        val showFeedback = feedback != null && feedbackShown(col)
+
+        CellWell(
+            slot = slot,
+            die = if (draggingAway) null else die,
+            cell = cell,
+            dieSize = dieSize,
+            dd = dd,
+            active = isActive,
+            alpha = 1f,
+            highlighted = highlighted,
+            feedback = if (showFeedback) feedback else null,
+            showMatchIndicator = showMatchIndicator,
+            description = cellDescription(state, row, col, die, feedback),
+            draggable = isActive && die != null && !draggingAway,
+            state = state,
+            onIntent = onIntent,
+            onTap = { onIntent(GameIntent.TapMove(slot)) },
+            onEmptyTap = { onEmptyTap(slot) },
+            modifier = Modifier.absoluteOffset(x = colX[col], y = rowTop),
+        )
+    }
+
+    // Column 4: enter cell on the active row, feedback pegs on submitted rows.
+    Box(
+        modifier = Modifier.absoluteOffset(x = colX[3], y = rowTop).size(cell),
     ) {
-        for (col in 0 until GUESS_SIZE) {
-            val slot = Slot.Cell(row, col)
-            val die = state.dieAt(slot)
-            val draggingAway = dd.session?.from == slot
-            val highlighted = dd.session?.let { isLegalMove(state, it.from, slot) } == true
-
-            val feedback = if (isSubmitted) state.guesses[row].feedback[col] else null
-            val showFeedback = feedback != null && feedbackShown(col)
-
-            CellWell(
-                slot = slot,
-                die = if (draggingAway) null else die,
-                cell = cell,
-                dieSize = dieSize,
-                dd = dd,
-                active = isActive,
-                alpha = when {
-                    isActive -> 1f
-                    isSubmitted -> 0.6f
-                    else -> 0.35f
-                },
-                highlighted = highlighted,
-                feedback = if (showFeedback) feedback else null,
-                showMatchIndicator = showMatchIndicator,
-                wellRadius = null,
-                description = cellDescription(state, row, col, die, feedback),
-                draggable = isActive && die != null && !draggingAway,
-                state = state,
-                onIntent = onIntent,
-                onTap = { onIntent(GameIntent.TapMove(slot)) },
-            )
-        }
-
-        // Column 4: enter cell on the active row, feedback pegs on submitted rows.
         when {
             isActive -> EnterCell(state, cell, onIntent)
             isSubmitted -> {
@@ -959,7 +988,6 @@ private fun GuessRow(
                     }
                 }
             }
-            else -> Spacer(Modifier.size(cell))
         }
     }
 }
@@ -994,12 +1022,13 @@ private fun CellWell(
     highlighted: Boolean,
     feedback: Feedback?,
     showMatchIndicator: Boolean,
-    wellRadius: Dp?,
     description: String,
     draggable: Boolean,
     state: GameState,
     onIntent: (GameIntent) -> Unit,
     onTap: () -> Unit,
+    onEmptyTap: () -> Unit = {},
+    modifier: Modifier = Modifier,
 ) {
     // The drag gesture lives on the persistent well (keyed on slot only) so
     // recomposition mid-drag — the die leaving the slot, highlight changes —
@@ -1007,15 +1036,19 @@ private fun CellWell(
     val currentState by rememberUpdatedState(state)
     val currentDie by rememberUpdatedState(die)
     val currentDraggable by rememberUpdatedState(draggable)
+    val currentActive by rememberUpdatedState(active)
     val currentOnIntent by rememberUpdatedState(onIntent)
     val currentOnTap by rememberUpdatedState(onTap)
+    val currentOnEmptyTap by rememberUpdatedState(onEmptyTap)
 
     // The debug settings toggle hides the border/glow match indicators only;
     // `feedback` still drives semantics via `description`.
     val shownFeedback = if (showMatchIndicator) feedback else null
 
-    // Tray cells draw their wells to match the die corner radius.
-    val shape = wellRadius?.let { RoundedCornerShape(it) } ?: WellShape
+    // Tray cells draw their wells to match the die corner radius; grid cells
+    // sit on the board artwork's wells and draw nothing underneath.
+    val isTray = slot is Slot.Tray
+    val shape = if (isTray) RoundedCornerShape(dieSize * 0.18f) else WellShape
 
     // Colored outer glow behind submitted-cell borders (Stitch feedback rings).
     val glowModifier = when (shownFeedback) {
@@ -1041,15 +1074,12 @@ private fun CellWell(
             Modifier.border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.15f), shape)
         highlighted ->
             Modifier.border(2.dp, MasterDiceColors.Brass, shape)
-        // Empty active cells get a dashed outline (drawn in the socket pass
-        // below); filled active cells keep a subtle brass edge.
-        active && die != null ->
-            Modifier.border(1.dp, MasterDiceColors.Brass.copy(alpha = 0.35f), shape)
+        // Active-row cells get a dashed outline in the socket pass below.
         else -> Modifier
     }
 
     Box(
-        modifier = Modifier
+        modifier = modifier
             .size(cell)
             .then(glowModifier)
             .then(
@@ -1105,10 +1135,18 @@ private fun CellWell(
                 }
             }
             // Tap = quick move: tray die fills the first free cell, cell die
-            // returns to the tray. Drags never reach here — they need slop.
+            // returns to the tray. Tapping an empty active cell shows the
+            // hint bubble. Drags never reach here — they need slop.
             .pointerInput(slot) {
                 detectTapGestures {
-                    if (currentDraggable && dd.session == null) currentOnTap()
+                    if (dd.session != null) return@detectTapGestures
+                    if (currentDraggable) {
+                        currentOnTap()
+                    } else if (slot is Slot.Cell && currentActive &&
+                        currentDie == null
+                    ) {
+                        currentOnEmptyTap()
+                    }
                 }
             },
     ) {
@@ -1118,32 +1156,15 @@ private fun CellWell(
                 .then(borderModifier)
                 .drawWithContent {
                     drawContent()
-                    // Dashed brass outline = empty drop target in the active row.
+                    // "+" hint = empty drop target in the active row.
                     if (slot is Slot.Cell && active && die == null &&
                         !highlighted && shownFeedback == null
                     ) {
-                        drawDashedSocket()
+                        drawDropHint()
                     }
                 },
             contentAlignment = Alignment.Center,
         ) {
-            if (wellRadius != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { this.alpha = alpha }
-                        .drawBehind { drawSlateWell(wellRadius.toPx()) },
-                )
-            } else {
-                Image(
-                    painter = painterResource(Res.drawable.board_well),
-                    contentDescription = null,
-                    contentScale = ContentScale.FillBounds,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer { this.alpha = alpha },
-                )
-            }
             if (die != null) {
                 DieView(die = die, size = dieSize, alpha = alpha)
             }
@@ -1180,19 +1201,27 @@ private fun EnterCell(state: GameState, cell: Dp, onIntent: (GameIntent) -> Unit
     }
 }
 
+/** Deal-tray artwork with the four tray cells overlaid on its wells. */
 @Composable
 private fun TrayRow(
     state: GameState,
+    boardW: Dp,
     cell: Dp,
     dieSize: Dp,
-    gap: Dp,
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
-    Row(
-        modifier = Modifier.bronzeFrame(gap),
-        horizontalArrangement = Arrangement.spacedBy(gap),
-    ) {
+    val trayW = boardW * (986f / 1016f)
+    val colX = TRAY_COLS_PX.map { trayW * (it / 986f) }
+    val rowTop = trayW * (TRAY_ROW_TOP_PX / 986f)
+
+    Box(modifier = Modifier.size(trayW, trayW * TRAY_ASPECT)) {
+        Image(
+            painter = painterResource(Res.drawable.deal_tray),
+            contentDescription = null,
+            contentScale = ContentScale.FillBounds,
+            modifier = Modifier.matchParentSize(),
+        )
         for (i in 0 until TRAY_SIZE) {
             val slot = Slot.Tray(i)
             val die = state.tray[i]
@@ -1211,13 +1240,13 @@ private fun TrayRow(
                 highlighted = highlighted,
                 feedback = null,
                 showMatchIndicator = true,
-                wellRadius = dieSize * 0.18f,
                 description = "Tray slot ${i + 1}: " +
                     (die?.let { "${colourName(it.colour)} ${it.value}" } ?: "empty"),
                 draggable = canDrag,
                 state = state,
                 onIntent = onIntent,
                 onTap = { onIntent(GameIntent.TapMove(slot)) },
+                modifier = Modifier.absoluteOffset(x = colX[i], y = rowTop),
             )
         }
     }
@@ -1316,7 +1345,7 @@ private fun EndPanel(
             if (state.status == GameStatus.LOST) {
                 Spacer(Modifier.height(4.dp))
                 BasicText(
-                    text = "The dice were",
+                    text = "The solution was",
                     style = TextStyle(
                         color = MasterDiceColors.Ivory.copy(alpha = 0.6f),
                         fontSize = 13.sp,
@@ -1393,33 +1422,6 @@ private fun BoxScope.DragOverlay(dd: DragDropState, dieSize: Dp, trayDieSize: Dp
     }
 }
 
-private val RowPanelShape = RoundedCornerShape(12.dp)
-
-/** Panel chrome for the active and submitted guess rows (Stitch row 04/03). */
-private fun rowPanelModifier(active: Boolean, submitted: Boolean): Modifier = when {
-    active -> Modifier
-        .shadow(
-            15.dp, RowPanelShape, clip = false,
-            ambientColor = MasterDiceColors.Brass,
-            spotColor = MasterDiceColors.Brass.copy(alpha = 0.35f),
-        )
-        .background(MasterDiceColors.RowPanel.copy(alpha = 0.9f), RowPanelShape)
-        .background(
-            Brush.horizontalGradient(
-                listOf(
-                    MasterDiceColors.BrassBright.copy(alpha = 0.10f),
-                    MasterDiceColors.BrassBright.copy(alpha = 0.20f),
-                    MasterDiceColors.BrassBright.copy(alpha = 0.10f),
-                ),
-            ),
-            RowPanelShape,
-        )
-    submitted -> Modifier
-        .background(MasterDiceColors.SubmittedPanel.copy(alpha = 0.85f), RowPanelShape)
-        .border(1.dp, MasterDiceColors.SubmittedPanelBorder, RowPanelShape)
-    else -> Modifier
-}
-
 /** Felt surface: radial light falloff plus a heavy edge vignette. */
 private fun DrawScope.drawFeltBackground() {
     drawRect(
@@ -1442,23 +1444,45 @@ private fun DrawScope.drawFeltBackground() {
     )
 }
 
-/** Dashed brass "tap to place" outline for empty cells on the active row. */
-private fun DrawScope.drawDashedSocket() {
-    val corner = CornerRadius(10.dp.toPx())
-    val inset = 0.75.dp.toPx()
-    drawRoundRect(
-        color = MasterDiceColors.Brass.copy(alpha = 0.5f),
-        topLeft = Offset(inset, inset),
-        size = Size(size.width - inset * 2, size.height - inset * 2),
-        cornerRadius = CornerRadius(corner.x - inset),
-        style = Stroke(
-            width = 1.5.dp.toPx(),
-            pathEffect = PathEffect.dashPathEffect(
-                floatArrayOf(4.dp.toPx(), 3.dp.toPx()),
+/** Transient bubble anchored above a tapped empty cell, telling the player
+ * how to fill it. `anchor` is the cell center in root coordinates. */
+@Composable
+private fun HintBubble(anchor: Offset, aboveBy: Dp, onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .testTag("cellHint")
+            .semantics { contentDescription = "Drag or tap a tray die to fill this cell" }
+            .layout { measurable, constraints ->
+                val placeable = measurable.measure(constraints)
+                layout(placeable.width, placeable.height) {
+                    placeable.place(
+                        x = (anchor.x - placeable.width / 2f)
+                            .roundToInt()
+                            .coerceIn(0, (constraints.maxWidth - placeable.width).coerceAtLeast(0)),
+                        y = (anchor.y - aboveBy.toPx() - placeable.height)
+                            .roundToInt()
+                            .coerceAtLeast(0),
+                    )
+                }
+            }
+            .clip(RoundedCornerShape(8.dp))
+            .background(MasterDiceColors.Board)
+            .border(1.dp, MasterDiceColors.Brass, RoundedCornerShape(8.dp))
+            .pointerInput(Unit) { detectTapGestures { onDismiss() } }
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+    ) {
+        BasicText(
+            text = "Drag or tap a tray die to fill this cell",
+            style = TextStyle(
+                color = MasterDiceColors.Ivory,
+                fontSize = 11.sp,
             ),
-        ),
-    )
-    // Centered "+" drop hint.
+        )
+    }
+}
+
+/** Centered brass "+" drop hint for empty cells on the active row. */
+private fun DrawScope.drawDropHint() {
     val arm = size.minDimension * 0.13f
     val t = 1.5.dp.toPx()
     val c = MasterDiceColors.Brass.copy(alpha = 0.55f)
@@ -1466,14 +1490,4 @@ private fun DrawScope.drawDashedSocket() {
     drawLine(c, Offset(center.x, center.y - arm), Offset(center.x, center.y + arm), t)
 }
 
-/** Recessed slate well drawn at a given corner radius (matches board_well.png). */
-private fun DrawScope.drawSlateWell(cornerRadius: Float) {
-    val inset = 2.dp.toPx()
-    drawRoundRect(color = MasterDiceColors.WellRim, cornerRadius = CornerRadius(cornerRadius))
-    drawRoundRect(
-        color = MasterDiceColors.WellFill,
-        topLeft = Offset(inset, inset),
-        size = Size(size.width - inset * 2, size.height - inset * 2),
-        cornerRadius = CornerRadius((cornerRadius - inset).coerceAtLeast(0f)),
-    )
-}
+
