@@ -40,7 +40,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -90,16 +89,17 @@ import kotlin.math.roundToInt
 
 private val WellShape = RoundedCornerShape(10.dp)
 
-// board_4x10.png geometry (pixels of the 2367x5483 source artwork; the
+// board_4x10.png geometry (pixels of the 2400x5482 source artwork; the
 // bundled resource is a 0.6x downscale — identical fractions): square wells
-// on a uniform grid — 3 guess columns plus the lighter return-key column.
-private const val BOARD_ASPECT = 5483f / 2367f
+// on a uniform grid — 3 guess columns plus a continuous recessed peg track.
+private const val BOARD_ASPECT = 5482f / 2400f
 private const val BOARD_WELL_PX = 500f
-private val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f, 1769f)
+private val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f)
+private const val BOARD_TRACK_CX_PX = 2014f
 private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
-// deal_tray.png is 2292x697; rendered at boardW*2292/2367 wide, its wells land
+// deal_tray.png is 2292x697; rendered at boardW*2292/2400 wide, its wells land
 // on exactly the same grid as the board's.
 private const val TRAY_ASPECT = 697f / 2292f
 private val TRAY_COLS_PX = floatArrayOf(98f, 630f, 1162f, 1693f)
@@ -160,14 +160,14 @@ fun GameScreen(
         // height budget once the header and spacers are paid for.
         val boardW = minOf(
             maxBoardWidth - 16.dp,
-            (maxHeight - 80.dp) / (BOARD_ASPECT + 697f / 2367f),
+            (maxHeight - 80.dp) / (BOARD_ASPECT + 697f / 2400f),
         ) * 0.81f
         val boardH = boardW * BOARD_ASPECT
-        // One cell = one artwork well (500px of the 2367px-wide image).
-        val cell = boardW * (BOARD_WELL_PX / 2367f)
-        // 4dp of well showing on every side. Grid and tray share one size.
-        val dieSize = cell - 8.dp
-        // 4th-column cell — sized to the enter key, smaller than the well.
+        // One cell = one artwork well (500px of the 2400px-wide image).
+        val cell = boardW * (BOARD_WELL_PX / 2400f)
+        // Grid and tray share one size; dice fill their wells edge to edge.
+        val dieSize = cell
+        // 4th-column cell — sized to the enter key, centered on the peg track.
         val enterSize = dieSize * 0.9f
 
         Column(
@@ -265,31 +265,6 @@ fun GameScreen(
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier.matchParentSize(),
                 )
-                // Column 4's lighter wells are baked into the artwork at full
-                // well size; repaint them at enter-key size.
-                Canvas(Modifier.matchParentSize()) {
-                    val cellPx = cell.toPx()
-                    val keyPx = enterSize.toPx()
-                    val left = size.width * (BOARD_COLS_PX[3] / 2367f)
-                    val inset = (cellPx - keyPx) / 2f
-                    // Same corner radius as the enter key art (~0.21 of size).
-                    val radius = CornerRadius(keyPx * 0.21f)
-                    for (i in 0 until ROWS) {
-                        val top = size.width *
-                            ((BOARD_ROW_TOP_PX + i * BOARD_ROW_PITCH_PX) / 2367f)
-                        drawRect(
-                            color = MasterDiceColors.EnterWellBg,
-                            topLeft = Offset(left, top),
-                            size = Size(cellPx, cellPx),
-                        )
-                        drawRoundRect(
-                            color = MasterDiceColors.EnterWell,
-                            topLeft = Offset(left + inset, top + inset),
-                            size = Size(keyPx, keyPx),
-                            cornerRadius = radius,
-                        )
-                    }
-                }
                 for (row in ROWS - 1 downTo 0) {
                     GuessRow(
                         state = state,
@@ -935,9 +910,11 @@ private fun BoxScope.GuessRow(
     val isSubmitted = row < state.guesses.size
 
     // Artwork well positions in board-width fractions.
-    val colX = BOARD_COLS_PX.map { boardW * (it / 2367f) }
+    val colX = BOARD_COLS_PX.map { boardW * (it / 2400f) }
     val rowTop =
-        boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 2367f)
+        boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 2400f)
+    // Center-x of the baked peg track that replaces the 4th well column.
+    val trackCx = boardW * (BOARD_TRACK_CX_PX / 2400f)
 
     for (col in 0 until GUESS_SIZE) {
         val slot = Slot.Cell(row, col)
@@ -970,11 +947,11 @@ private fun BoxScope.GuessRow(
     }
 
     // Column 4: enter cell on the active row, feedback pegs on submitted rows.
-    // The cell is sized to the enter key and centered in the artwork well.
+    // The cell is sized to the enter key and centered on the peg track.
     Box(
         modifier = Modifier
             .absoluteOffset(
-                x = colX[3] + (cell - enterSize) / 2,
+                x = trackCx - enterSize / 2,
                 y = rowTop + (cell - enterSize) / 2,
             )
             .size(enterSize),
@@ -1259,7 +1236,7 @@ private fun TrayRow(
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
-    val trayW = boardW * (2292f / 2367f)
+    val trayW = boardW * (2292f / 2400f)
     val colX = TRAY_COLS_PX.map { trayW * (it / 2292f) }
     val rowTop = trayW * (TRAY_ROW_TOP_PX / 2292f)
 
