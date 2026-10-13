@@ -82,6 +82,7 @@ import com.masterdice.resources.Res
 import com.masterdice.resources.board_4x10
 import com.masterdice.resources.deal_tray
 import com.masterdice.resources.enter_key
+import com.masterdice.resources.pointing_hand
 import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
 import kotlinx.coroutines.delay
@@ -1563,9 +1564,11 @@ private fun TrayPointer(dd: DragDropState, visible: Boolean) {
                 scaleY = s
             },
     ) {
-        BasicText(
-            text = "👉",
-            style = TextStyle(fontSize = 38.sp),
+        Image(
+            painter = painterResource(Res.drawable.pointing_hand),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.height(44.dp),
         )
     }
 }
