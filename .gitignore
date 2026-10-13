@@ -89,3 +89,4 @@ my_backup.json
 *.zip
 /scripts/firebase_read_service_key.json
 .firebase/
+/dicecode.bundle
