@@ -1238,9 +1238,9 @@ private fun TrayRow(
     val trayW = boardW * (2292f / 2400f)
     val colX = TRAY_COLS_PX.map { trayW * (it / 2292f) }
     val rowTop = trayW * (TRAY_ROW_TOP_PX / 2292f)
-    // The die art carries a ~6%/side shaded rim; oversize tray dice so the
-    // rim laps over the recess edge and the face fills the well exactly.
-    val trayDieSize = cell * 1.08f
+    // Tray cells are 5% smaller than board cells, centered on the wells.
+    val trayCell = cell * 0.95f
+    val inset = (cell - trayCell) / 2
 
     Box(modifier = Modifier.size(trayW, trayW * TRAY_ASPECT)) {
         Image(
@@ -1259,8 +1259,8 @@ private fun TrayRow(
             CellWell(
                 slot = slot,
                 die = if (draggingAway) null else die,
-                cell = cell,
-                dieSize = trayDieSize,
+                cell = trayCell,
+                dieSize = trayCell,
                 dd = dd,
                 active = state.status == GameStatus.PLAYING,
                 alpha = 1f,
@@ -1273,7 +1273,10 @@ private fun TrayRow(
                 state = state,
                 onIntent = onIntent,
                 onTap = { onIntent(GameIntent.TapMove(slot)) },
-                modifier = Modifier.absoluteOffset(x = colX[i], y = rowTop),
+                modifier = Modifier.absoluteOffset(
+                    x = colX[i] + inset,
+                    y = rowTop + inset,
+                ),
             )
         }
     }
