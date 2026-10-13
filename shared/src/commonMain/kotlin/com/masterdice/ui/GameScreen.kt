@@ -1238,8 +1238,9 @@ private fun TrayRow(
     val trayW = boardW * (2292f / 2400f)
     val colX = TRAY_COLS_PX.map { trayW * (it / 2292f) }
     val rowTop = trayW * (TRAY_ROW_TOP_PX / 2292f)
-    // Tray cells are 5% smaller than board cells, centered on the wells.
-    val trayCell = cell * 0.95f
+    // Tray cells are 8% smaller than board cells, centered on the wells;
+    // the dice keep the full cell size.
+    val trayCell = cell * 0.92f
     val inset = (cell - trayCell) / 2
 
     Box(modifier = Modifier.size(trayW, trayW * TRAY_ASPECT)) {
@@ -1260,7 +1261,7 @@ private fun TrayRow(
                 slot = slot,
                 die = if (draggingAway) null else die,
                 cell = trayCell,
-                dieSize = trayCell,
+                dieSize = cell,
                 dd = dd,
                 active = state.status == GameStatus.PLAYING,
                 alpha = 1f,
