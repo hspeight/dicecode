@@ -310,7 +310,7 @@ fun GameScreen(
 //            }
 //            Spacer(Modifier.height(4.dp))
 
-            TrayRow(state, boardW, cell, dieSize, dd, onIntent)
+            TrayRow(state, boardW, cell, dd, onIntent)
         }
 
         DragOverlay(dd, dieSize)
@@ -1232,13 +1232,15 @@ private fun TrayRow(
     state: GameState,
     boardW: Dp,
     cell: Dp,
-    dieSize: Dp,
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
     val trayW = boardW * (2292f / 2400f)
     val colX = TRAY_COLS_PX.map { trayW * (it / 2292f) }
     val rowTop = trayW * (TRAY_ROW_TOP_PX / 2292f)
+    // The die art carries a ~6%/side shaded rim; oversize tray dice so the
+    // rim laps over the recess edge and the face fills the well exactly.
+    val trayDieSize = cell * 1.08f
 
     Box(modifier = Modifier.size(trayW, trayW * TRAY_ASPECT)) {
         Image(
@@ -1258,7 +1260,7 @@ private fun TrayRow(
                 slot = slot,
                 die = if (draggingAway) null else die,
                 cell = cell,
-                dieSize = dieSize,
+                dieSize = trayDieSize,
                 dd = dd,
                 active = state.status == GameStatus.PLAYING,
                 alpha = 1f,
