@@ -16,6 +16,7 @@ fun App() {
     val state by viewModel.state.collectAsState()
     val stats by viewModel.stats.collectAsState()
     val newBest by viewModel.newBest.collectAsState()
+    val soundEnabled by viewModel.soundEnabled.collectAsState()
     GameScreen(
         state = state,
         onIntent = viewModel::dispatch,
@@ -23,5 +24,7 @@ fun App() {
         bestScore = stats.bestScores[state.levelIndex],
         newBest = newBest,
         totalScore = stats.totalScore,
+        soundEnabled = soundEnabled,
+        onToggleSound = viewModel::setSoundEnabled,
     )
 }

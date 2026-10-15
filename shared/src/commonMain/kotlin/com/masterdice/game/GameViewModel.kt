@@ -2,6 +2,7 @@ package com.masterdice.game
 
 import androidx.lifecycle.ViewModel
 import com.masterdice.data.GameStore
+import com.masterdice.platform.SoundFx
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,19 @@ class GameViewModel(
 
     private val _stats = MutableStateFlow(store?.loadStats() ?: GameStore.GameStats())
     val stats: StateFlow<GameStore.GameStats> = _stats.asStateFlow()
+
+    // Sound preference — persisted; mirrors into SoundFx for the UI layer.
+    private val _soundEnabled = MutableStateFlow(
+        (store?.loadSettings()?.soundEnabled ?: true).also { SoundFx.enabled = it },
+    )
+    val soundEnabled: StateFlow<Boolean> = _soundEnabled.asStateFlow()
+
+    fun setSoundEnabled(enabled: Boolean) {
+        _soundEnabled.value = enabled
+        SoundFx.enabled = enabled
+        store?.saveSettings(GameStore.Settings(soundEnabled = enabled))
+        SoundFx.tap() // audible confirm when toggled on
+    }
 
     /** True while the end panel of a record-breaking game is on screen. */
     private val _newBest = MutableStateFlow(false)

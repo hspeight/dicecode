@@ -25,6 +25,8 @@ class GameStore(
     private val tmp: Path = directory / "game.json.tmp"
     private val statsTarget: Path = directory / "stats.json"
     private val statsTmp: Path = directory / "stats.json.tmp"
+    private val settingsTarget: Path = directory / "settings.json"
+    private val settingsTmp: Path = directory / "settings.json.tmp"
     private val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = true
@@ -84,5 +86,33 @@ class GameStore(
         fs.write(statsTmp) { writeUtf8(json.encodeToString(GameStats.serializer(), stats)) }
         fs.delete(statsTarget, mustExist = false)
         fs.atomicMove(statsTmp, statsTarget)
+    }
+
+    /** User preferences persisted across sessions. */
+    @Serializable
+    data class Settings(
+        val soundEnabled: Boolean = true,
+    )
+
+    fun loadSettings(): Settings = try {
+        if (!fs.exists(settingsTarget)) {
+            Settings()
+        } else {
+            json.decodeFromString(
+                Settings.serializer(),
+                fs.read(settingsTarget) { readUtf8() },
+            )
+        }
+    } catch (_: Exception) {
+        Settings() // corrupt settings: fall back to defaults
+    }
+
+    fun saveSettings(settings: Settings) {
+        if (!fs.exists(directory)) fs.createDirectories(directory)
+        fs.write(settingsTmp) {
+            writeUtf8(json.encodeToString(Settings.serializer(), settings))
+        }
+        fs.delete(settingsTarget, mustExist = false)
+        fs.atomicMove(settingsTmp, settingsTarget)
     }
 }

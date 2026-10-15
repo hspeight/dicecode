@@ -116,6 +116,11 @@ fun GameScreen(
     newBest: Boolean = false,
     totalScore: Int = 0,
     modifier: Modifier = Modifier,
+    soundEnabled: Boolean = SoundFx.enabled,
+    onToggleSound: (Boolean) -> Unit = {
+        SoundFx.enabled = it
+        SoundFx.tap()
+    },
 ) {
     val dd = rememberDragDropState()
 
@@ -126,7 +131,6 @@ fun GameScreen(
     var showDealPicker by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showMatchIndicators by remember { mutableStateOf(false) }
-    var soundEnabled by remember { mutableStateOf(SoundFx.enabled) }
     // Slot.Cell that last received an empty-cell tap; drives the hint bubble.
     var hintCell by remember { mutableStateOf<Slot.Cell?>(null) }
     val reveal = remember { Animatable(1f) }
@@ -341,11 +345,7 @@ fun GameScreen(
         if (showSettings) {
             SettingsPanel(
                 soundEnabled = soundEnabled,
-                onToggleSound = {
-                    soundEnabled = it
-                    SoundFx.enabled = it
-                    SoundFx.tap() // audible confirm when toggled on
-                },
+                onToggleSound = onToggleSound,
                 showMatchIndicators = showMatchIndicators,
                 onToggle = { showMatchIndicators = it },
                 onDismiss = { showSettings = false },

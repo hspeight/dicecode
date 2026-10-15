@@ -70,4 +70,26 @@ class GameStoreTest {
         fs.write("/saves/stats.json".toPath()) { writeUtf8("{ not json !!!") }
         assertEquals(GameStore.GameStats(), GameStore("/saves", fs).loadStats())
     }
+
+    @Test
+    fun settingsRoundTrip() {
+        val fs = FakeFileSystem()
+        val store = GameStore("/saves", fs)
+
+        assertEquals(GameStore.Settings(), store.loadSettings())
+
+        store.saveSettings(GameStore.Settings(soundEnabled = false))
+        assertEquals(false, store.loadSettings().soundEnabled)
+
+        // A second store on the same fs sees the same file.
+        assertEquals(false, GameStore("/saves", fs).loadSettings().soundEnabled)
+    }
+
+    @Test
+    fun corruptSettingsLoadsDefault() {
+        val fs = FakeFileSystem()
+        fs.createDirectories("/saves".toPath())
+        fs.write("/saves/settings.json".toPath()) { writeUtf8("{ not json !!!") }
+        assertEquals(GameStore.Settings(), GameStore("/saves", fs).loadSettings())
+    }
 }
