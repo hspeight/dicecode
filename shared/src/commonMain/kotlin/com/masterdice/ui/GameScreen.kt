@@ -168,10 +168,10 @@ fun GameScreen(
         val gap = 6.dp
         // The board is a fixed-aspect artwork scaled from boardW; its width
         // is bound by whichever is tighter — the column width, or the height
-        // budget once the header, deal row, and spacers are paid for.
+        // budget once the header rows, deal row, and spacers are paid for.
         val boardW = minOf(
             maxBoardWidth - 16.dp,
-            (maxHeight - 80.dp - gap) / (BOARD_ASPECT + DEAL_ASPECT),
+            (maxHeight - 130.dp - gap) / (BOARD_ASPECT + DEAL_ASPECT),
         ) * 0.81f
         val boardH = boardW * BOARD_ASPECT
         // One cell = one artwork well (500px of the 2400px-wide image);
@@ -203,10 +203,12 @@ fun GameScreen(
                     DebugDealButton(onClick = { showDealPicker = true })
                 }
                 Spacer(Modifier.weight(1f))
-                ScorePill(totalScore)
                 SettingsButton(onClick = { showSettings = true })
                 HelpButton(onClick = { showHelp = true })
             }
+
+            // Score badge: large and centered on its own row.
+            ScorePill(totalScore)
 
             Box(modifier = Modifier.size(boardW, boardH)) {
                 Image(
@@ -475,12 +477,12 @@ private fun UndoPill(enabled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Purple SCORE pill with a small crown, like the reference header. */
+/** Large purple SCORE badge with a crown, centered below the controls. */
 @Composable
 private fun ScorePill(score: Int) {
     Row(
         modifier = Modifier
-            .height(34.dp)
+            .height(56.dp)
             .testTag("runningTotal")
             .semantics { contentDescription = "Score $score" }
             .clip(RoundedCornerShape(50))
@@ -489,11 +491,11 @@ private fun ScorePill(score: Int) {
                     listOf(MasterDiceColors.ScorePurple, MasterDiceColors.ScorePurpleDeep),
                 ),
             )
-            .border(1.5.dp, MasterDiceColors.BrassBright, RoundedCornerShape(50))
-            .padding(horizontal = 10.dp),
+            .border(2.5.dp, MasterDiceColors.BrassBright, RoundedCornerShape(50))
+            .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Canvas(Modifier.size(13.dp)) {
+        Canvas(Modifier.size(22.dp)) {
             val w = size.width
             val h = size.height
             val crown = Path().apply {
@@ -508,15 +510,15 @@ private fun ScorePill(score: Int) {
             }
             drawPath(crown, MasterDiceColors.BrassBright)
         }
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(10.dp))
         Column {
             BasicText(
                 text = "SCORE",
                 style = TextStyle(
                     color = MasterDiceColors.GoldHi.copy(alpha = 0.85f),
-                    fontSize = 6.5.sp,
+                    fontSize = 10.sp,
                     fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.5.sp,
+                    letterSpacing = 2.5.sp,
                 ),
             )
             BasicText(
@@ -524,7 +526,7 @@ private fun ScorePill(score: Int) {
                     .reversed().chunked(3).joinToString(",").reversed(),
                 style = TextStyle(
                     color = MasterDiceColors.GoldHi,
-                    fontSize = 14.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.Bold,
                 ),
             )
