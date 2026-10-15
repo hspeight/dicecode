@@ -922,10 +922,10 @@ private fun BoxScope.GuessRow(
         boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 2400f)
     // Center-x of the baked peg track that replaces the 4th well column.
     val trackCx = boardW * (BOARD_TRACK_CX_PX / 2400f)
-    // Cell boxes are 2% smaller than the wells, centered; dice and feedback
-    // rings keep the full cell size.
-    val cellBox = cell * 0.98f
-    val cellInset = (cell - cellBox) / 2
+    // Interactive cells sit at 90% of the artwork wells, centered; dice
+    // and spacing are unaffected.
+    val cellSize = cell * 0.9f
+    val inset = (cell - cellSize) / 2
 
     for (col in 0 until GUESS_SIZE) {
         val slot = Slot.Cell(row, col)
@@ -939,7 +939,7 @@ private fun BoxScope.GuessRow(
         CellWell(
             slot = slot,
             die = if (draggingAway) null else die,
-            cell = cellBox,
+            cell = cellSize,
             dieSize = dieSize,
             dd = dd,
             active = isActive,
@@ -954,23 +954,29 @@ private fun BoxScope.GuessRow(
             onTap = { SoundFx.tap(); onIntent(GameIntent.TapMove(slot)) },
             onEmptyTap = { onEmptyTap(slot) },
             modifier = Modifier.absoluteOffset(
-                x = colX[col] + cellInset,
-                y = rowTop + cellInset,
+                x = colX[col] + inset,
+                y = rowTop + inset,
             ),
         )
     }
 
     // Column 4: enter cell on the active row, feedback pegs on submitted rows.
-    // The cell is sized to the enter key and centered on the peg track.
+    // The cell is 90% of the enter key and centered on the peg track; the
+    // key and peg panel keep full size via requiredSize.
+    val enterCell = enterSize * 0.9f
     Box(
         modifier = Modifier
             .absoluteOffset(
-                x = trackCx - enterSize / 2,
-                y = rowTop + (cell - enterSize) / 2,
+                x = trackCx - enterCell / 2,
+                y = rowTop + (cell - enterCell) / 2,
             )
-            .size(enterSize),
+            .size(enterCell),
         contentAlignment = Alignment.Center,
     ) {
+        Box(
+            modifier = Modifier.requiredSize(enterSize),
+            contentAlignment = Alignment.Center,
+        ) {
         when {
             isActive -> EnterCell(state, enterSize, onIntent)
             isSubmitted -> {
@@ -1010,6 +1016,7 @@ private fun BoxScope.GuessRow(
                     }
                 }
             }
+        }
         }
     }
 }
@@ -1120,6 +1127,7 @@ private fun CellWell(
     Box(
         modifier = modifier
             .size(cell)
+            .then(glowModifier)
             .then(
                 if (slot is Slot.Cell) Modifier.testTag("cell-${slot.row}-${slot.col}")
                 else Modifier.testTag("tray-${(slot as Slot.Tray).index}")
@@ -1191,6 +1199,7 @@ private fun CellWell(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .then(borderModifier)
                 .drawWithContent {
                     drawContent()
                     // "+" hint = empty drop target in the active row.
@@ -1202,15 +1211,9 @@ private fun CellWell(
                 },
             contentAlignment = Alignment.Center,
         ) {
-            // Feedback ring hugs the die footprint, not the (smaller) cell.
-            Box(
-                Modifier
-                    .requiredSize(dieSize)
-                    .then(glowModifier)
-                    .then(borderModifier),
-            )
             if (die != null) {
-                // requiredSize lets the die overflow a smaller cell box.
+                // requiredSize lets the die overflow a smaller cell box
+                // (tray cells sit at 0.87 under the full-size die).
                 DieView(
                     die = die,
                     size = dieSize,
@@ -1266,8 +1269,8 @@ private fun DiceRow(
     val colX = BOARD_DICE_COLS_PX.map { boardW * (it / 2400f) }
     val rowTop = boardW * (BOARD_DICE_ROW_TOP_PX / 2400f)
     // The die art is a rounded square covering an inscribed 0.87 square;
-    // dice-row cells sit fully behind the die at 0.85, centered on the wells.
-    val diceCell = cell * 0.85f
+    // dice-row cells sit a further 10% smaller, fully behind the die.
+    val diceCell = cell * 0.87f * 0.9f
     val inset = (cell - diceCell) / 2
 
     for (i in 0 until TRAY_SIZE) {
