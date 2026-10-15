@@ -97,7 +97,7 @@ private val WellShape = RoundedCornerShape(10.dp)
 private const val BOARD_ASPECT = 5482f / 2400f
 private const val BOARD_WELL_PX = 500f
 private val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f)
-private const val BOARD_TRACK_CX_PX = 2014f
+private const val BOARD_TRACK_CX_PX = 2010f
 private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
@@ -1286,7 +1286,7 @@ private fun TrayRow(
                 slot = slot,
                 die = if (draggingAway) null else die,
                 cell = trayCell,
-                dieSize = cell * 1.08f,
+                dieSize = cell,
                 dd = dd,
                 active = state.status == GameStatus.PLAYING,
                 alpha = 1f,
