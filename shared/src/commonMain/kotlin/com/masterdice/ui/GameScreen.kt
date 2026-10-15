@@ -922,10 +922,6 @@ private fun BoxScope.GuessRow(
         boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 2400f)
     // Center-x of the baked peg track that replaces the 4th well column.
     val trackCx = boardW * (BOARD_TRACK_CX_PX / 2400f)
-    // Interactive cells sit at 90% of the artwork wells, centered; dice
-    // and spacing are unaffected.
-    val cellSize = cell * 0.9f
-    val inset = (cell - cellSize) / 2
 
     for (col in 0 until GUESS_SIZE) {
         val slot = Slot.Cell(row, col)
@@ -939,7 +935,7 @@ private fun BoxScope.GuessRow(
         CellWell(
             slot = slot,
             die = if (draggingAway) null else die,
-            cell = cellSize,
+            cell = cell,
             dieSize = dieSize,
             dd = dd,
             active = isActive,
@@ -953,30 +949,21 @@ private fun BoxScope.GuessRow(
             onIntent = onIntent,
             onTap = { SoundFx.tap(); onIntent(GameIntent.TapMove(slot)) },
             onEmptyTap = { onEmptyTap(slot) },
-            modifier = Modifier.absoluteOffset(
-                x = colX[col] + inset,
-                y = rowTop + inset,
-            ),
+            modifier = Modifier.absoluteOffset(x = colX[col], y = rowTop),
         )
     }
 
     // Column 4: enter cell on the active row, feedback pegs on submitted rows.
-    // The cell is 90% of the enter key and centered on the peg track; the
-    // key and peg panel keep full size via requiredSize.
-    val enterCell = enterSize * 0.9f
+    // The cell is sized to the enter key and centered on the peg track.
     Box(
         modifier = Modifier
             .absoluteOffset(
-                x = trackCx - enterCell / 2,
-                y = rowTop + (cell - enterCell) / 2,
+                x = trackCx - enterSize / 2,
+                y = rowTop + (cell - enterSize) / 2,
             )
-            .size(enterCell),
+            .size(enterSize),
         contentAlignment = Alignment.Center,
     ) {
-        Box(
-            modifier = Modifier.requiredSize(enterSize),
-            contentAlignment = Alignment.Center,
-        ) {
         when {
             isActive -> EnterCell(state, enterSize, onIntent)
             isSubmitted -> {
@@ -1016,7 +1003,6 @@ private fun BoxScope.GuessRow(
                     }
                 }
             }
-        }
         }
     }
 }
@@ -1269,8 +1255,8 @@ private fun DiceRow(
     val colX = BOARD_DICE_COLS_PX.map { boardW * (it / 2400f) }
     val rowTop = boardW * (BOARD_DICE_ROW_TOP_PX / 2400f)
     // The die art is a rounded square covering an inscribed 0.87 square;
-    // dice-row cells sit a further 10% smaller, fully behind the die.
-    val diceCell = cell * 0.87f * 0.9f
+    // dice-row cells sit fully behind the die, centered on the wells.
+    val diceCell = cell * 0.87f
     val inset = (cell - diceCell) / 2
 
     for (i in 0 until TRAY_SIZE) {
