@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -1197,7 +1198,14 @@ private fun CellWell(
             contentAlignment = Alignment.Center,
         ) {
             if (die != null) {
-                DieView(die = die, size = dieSize, alpha = alpha)
+                // requiredSize lets the die overflow a smaller cell box
+                // (tray cells sit at 0.87 under the full-size die).
+                DieView(
+                    die = die,
+                    size = dieSize,
+                    alpha = alpha,
+                    modifier = Modifier.requiredSize(dieSize),
+                )
             }
         }
     }
