@@ -813,49 +813,6 @@ private fun SettingsPanel(
                 // Swallow taps on the card itself so it doesn't dismiss.
                 .pointerInput(Unit) { detectTapGestures { } },
         ) {
-            // Title bar: gear tile + heading + gold close button.
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(goldPillBrush())
-                        .border(1.5.dp, MasterDiceColors.GoldLow, CircleShape),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Canvas(Modifier.size(14.dp)) { drawGear(MasterDiceColors.InkBrown) }
-                }
-                Spacer(Modifier.width(10.dp))
-                BasicText(
-                    text = "SETTINGS",
-                    modifier = Modifier.weight(1f),
-                    style = TextStyle(
-                        color = MasterDiceColors.GoldHi,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                    ),
-                )
-                Box(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .testTag("settingsClose")
-                        .semantics { contentDescription = "Close settings" }
-                        .clip(CircleShape)
-                        .background(goldPillBrush())
-                        .border(1.5.dp, MasterDiceColors.GoldLow, CircleShape)
-                        .pointerInput(Unit) { detectTapGestures { onDismiss() } },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Canvas(Modifier.size(11.dp)) {
-                        val ink = MasterDiceColors.InkBrown
-                        val w = size.minDimension * 0.24f
-                        drawLine(ink, Offset(w, w), Offset(size.width - w, size.height - w), w * 0.8f, StrokeCap.Round)
-                        drawLine(ink, Offset(size.width - w, w), Offset(w, size.height - w), w * 0.8f, StrokeCap.Round)
-                    }
-                }
-            }
-            Spacer(Modifier.height(12.dp))
             SettingsRow(
                 label = "SOUND FX",
                 tag = "toggleSound",
@@ -972,30 +929,6 @@ private fun SettingsRow(
             }
         }
     }
-}
-
-/** Eight-tooth gear, as in the settings header button. */
-private fun DrawScope.drawGear(color: Color) {
-    val c = center
-    val r = size.minDimension / 2f
-    for (i in 0 until 8) {
-        val a = i * kotlin.math.PI / 4
-        drawLine(
-            color = color,
-            start = Offset(
-                (c.x + kotlin.math.cos(a) * r * 0.72f).toFloat(),
-                (c.y + kotlin.math.sin(a) * r * 0.72f).toFloat(),
-            ),
-            end = Offset(
-                (c.x + kotlin.math.cos(a) * r).toFloat(),
-                (c.y + kotlin.math.sin(a) * r).toFloat(),
-            ),
-            strokeWidth = r * 0.32f,
-            cap = StrokeCap.Round,
-        )
-    }
-    drawCircle(color = color, radius = r * 0.58f, center = c)
-    drawCircle(color = MasterDiceColors.Gold, radius = r * 0.3f, center = c)
 }
 
 /** Speaker glyph for the SOUND FX row: cone plus two sound arcs. */
