@@ -8,7 +8,7 @@ import kotlin.test.assertTrue
 
 class ScoringTest {
 
-    private val l1 = LEVELS[0] // 3 cols, 4 tray: par 3, bound 4, base 100, bonus 25
+    private val l1 = LEVELS[0] // 3 cols, 4 tray: par 4, bound 4, base 100, bonus 25
 
     private fun guess(vararg feedback: Feedback) =
         Guess(dice = List(feedback.size) { Die(DieColour.RED, it + 1) }, feedback.toList())
@@ -17,12 +17,13 @@ class ScoringTest {
 
     @Test
     fun winAtParPaysBase() {
-        assertEquals(100, scoreWin(l1, 3))
+        assertEquals(100, scoreWin(l1, 4))
     }
 
     @Test
     fun winUnderParPaysBonusPerGuess() {
-        assertEquals(125, scoreWin(l1, 2))
+        assertEquals(150, scoreWin(l1, 2))
+        assertEquals(125, scoreWin(l1, 3))
     }
 
     @Test
@@ -32,13 +33,13 @@ class ScoringTest {
 
     @Test
     fun overParWinLosesBonusPerGuess() {
-        assertEquals(75, scoreWin(l1, 4))
-        assertEquals(50, scoreWin(l1, 5))
+        assertEquals(75, scoreWin(l1, 5))
+        assertEquals(50, scoreWin(l1, 6))
     }
 
     @Test
     fun overParWinIsFloored() {
-        assertEquals(40, scoreWin(l1, 6))
+        assertEquals(40, scoreWin(l1, 8))
         assertEquals(40, scoreWin(l1, 10))
         for (level in LEVELS) {
             assertEquals(level.floor, scoreWin(level, 10), "level ${level.index}")

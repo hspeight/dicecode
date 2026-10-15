@@ -116,17 +116,17 @@ class GameViewModelTest {
     @Test
     fun weakerScoreDoesNotOverwriteBest() {
         val vm = GameViewModel(null, Random(5))
-        vm.playWin() // 125, becomes best
+        vm.playWin() // 150, becomes best
         vm.newGame()
         assertFalse(vm.newBest.value)
 
-        // Losing pays at most 24 — it must not overwrite the 125 best,
+        // Losing pays at most 24 — it must not overwrite the 150 best,
         // but the total still grows by the loss credit.
         vm.playLosingGame()
         assertEquals(GameStatus.LOST, vm.state.value.status)
-        assertEquals(125, vm.stats.value.bestScores[0])
+        assertEquals(150, vm.stats.value.bestScores[0])
         assertEquals(
-            125 + scoreLoss(LEVELS[0], vm.state.value.guesses),
+            150 + scoreLoss(LEVELS[0], vm.state.value.guesses),
             vm.stats.value.totalScore,
         )
         assertFalse(vm.newBest.value)
