@@ -211,4 +211,40 @@ class GameScreenTest {
         onNodeWithTag("trayPointer").fetchSemanticsNode()
         mainClock.autoAdvance = true
     }
+
+    @Test
+    fun repeatedGuessShowsWarning() = runComposeUiTest {
+        var state by mutableStateOf(newGame(7L))
+        setContent {
+            GameScreen(
+                state = state,
+                onIntent = { intent -> state = reduce(state, intent) },
+                onNewGame = {},
+            )
+        }
+        waitForIdle()
+
+        // First fill is not a duplicate — no warning before submitting.
+        val dice = listOf(state.tray[0]!!, state.tray[1]!!, state.tray[2]!!)
+        playDice({ state }, row = 0, dice = dice)
+        assertFailsWith<AssertionError> {
+            onNodeWithTag("repeatWarning").fetchSemanticsNode()
+        }
+        onNodeWithTag("enter").performClick()
+        waitForIdle()
+
+        // Replaying the same combination warns once the row is full.
+        playDice({ state }, row = 1, dice = dice)
+        onNodeWithTag("repeatWarning").fetchSemanticsNode()
+
+        // Dismissing lets the duplicate submit anyway.
+        onNodeWithTag("repeatWarningDismiss").performClick()
+        waitForIdle()
+        assertFailsWith<AssertionError> {
+            onNodeWithTag("repeatWarning").fetchSemanticsNode()
+        }
+        onNodeWithTag("enter").performClick()
+        waitForIdle()
+        assertEquals(2, state.activeRow)
+    }
 }

@@ -125,6 +125,16 @@ class ScreenshotTest {
     }
 
     @Test
+    fun captureRepeatWarning() = runComposeUiTest {
+        var state = newGame(7L)
+        val dice = losingDice(state)
+        state = place(state, 0, dice)
+        state = reduce(state, GameIntent.Submit)
+        state = place(state, 1, dice)
+        capture(state, "repeatwarning.png")
+    }
+
+    @Test
     fun captureDealPicker() = runComposeUiTest {
         var s by mutableStateOf(midGameState())
         setContent {

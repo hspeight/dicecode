@@ -137,6 +137,8 @@ fun GameScreen(
     var showMatchIndicators by remember { mutableStateOf(false) }
     // Slot.Cell that last received an empty-cell tap; drives the hint bubble.
     var hintCell by remember { mutableStateOf<Slot.Cell?>(null) }
+    // The row contents last dismissed from the repeated-guess warning.
+    var dismissedDup by remember { mutableStateOf<List<Die?>?>(null) }
     val reveal = remember { Animatable(1f) }
     LaunchedEffect(hintCell) {
         if (hintCell != null) {
@@ -155,6 +157,14 @@ fun GameScreen(
     fun feedbackShown(row: Int, col: Int): Boolean =
         row < revealedRows ||
             (row == state.guesses.lastIndex && col < reveal.value * GUESS_SIZE)
+
+    // A full active row identical to a submitted guess earns a warning.
+    // Dismissed once per arrangement; re-arms if the row changes.
+    val dupGuessIndex =
+        if (state.status == GameStatus.PLAYING && state.activeCells.all { it != null })
+            state.guesses.indexOfFirst { it.dice == state.activeCells }
+        else -1
+    val showDupWarning = dupGuessIndex >= 0 && state.activeCells != dismissedDup
 
     BoxWithConstraints(
         modifier = modifier
@@ -297,6 +307,13 @@ fun GameScreen(
                     showDealPicker = false
                 },
                 onDismiss = { showDealPicker = false },
+            )
+        }
+
+        if (showDupWarning) {
+            RepeatGuessDialog(
+                guessNumber = dupGuessIndex + 1,
+                onDismiss = { dismissedDup = state.activeCells },
             )
         }
     }
@@ -849,6 +866,95 @@ private fun SettingsPanel(
             ) {
                 BasicText(
                     text = "DONE",
+                    style = TextStyle(
+                        color = MasterDiceColors.InkBrown,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp,
+                    ),
+                )
+            }
+        }
+    }
+}
+
+/** Modal warning shown when the filled row repeats an earlier guess. */
+@Composable
+private fun RepeatGuessDialog(guessNumber: Int, onDismiss: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("repeatWarning")
+            .background(MasterDiceColors.Board.copy(alpha = 0.82f))
+            .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .width(230.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(MasterDiceColors.FeltMid, MasterDiceColors.FeltDark),
+                    ),
+                )
+                .border(1.5.dp, MasterDiceColors.Gold, RoundedCornerShape(16.dp))
+                .padding(12.dp)
+                .pointerInput(Unit) { detectTapGestures { } },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Canvas(Modifier.size(30.dp)) {
+                val w = size.width
+                val h = size.height
+                val tri = Path().apply {
+                    moveTo(w * 0.5f, h * 0.06f)
+                    lineTo(w * 0.94f, h * 0.86f)
+                    lineTo(w * 0.06f, h * 0.86f)
+                    close()
+                }
+                drawPath(tri, MasterDiceColors.AmberBorder)
+                drawLine(
+                    MasterDiceColors.InkBrown,
+                    Offset(w * 0.5f, h * 0.34f),
+                    Offset(w * 0.5f, h * 0.62f),
+                    strokeWidth = w * 0.08f,
+                    cap = StrokeCap.Round,
+                )
+                drawCircle(MasterDiceColors.InkBrown, w * 0.045f, Offset(w * 0.5f, h * 0.74f))
+            }
+            Spacer(Modifier.height(8.dp))
+            BasicText(
+                text = "REPEATED GUESS",
+                style = TextStyle(
+                    color = MasterDiceColors.AmberBorder,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                ),
+            )
+            Spacer(Modifier.height(6.dp))
+            BasicText(
+                text = "This row is the same as guess $guessNumber.",
+                style = TextStyle(
+                    color = MasterDiceColors.Ivory.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                ),
+            )
+            Spacer(Modifier.height(12.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .testTag("repeatWarningDismiss")
+                    .semantics { contentDescription = "OK" }
+                    .clip(RoundedCornerShape(50))
+                    .background(goldPillBrush())
+                    .border(1.5.dp, MasterDiceColors.GoldLow, RoundedCornerShape(50))
+                    .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(
+                    text = "OK",
                     style = TextStyle(
                         color = MasterDiceColors.InkBrown,
                         fontSize = 14.sp,
