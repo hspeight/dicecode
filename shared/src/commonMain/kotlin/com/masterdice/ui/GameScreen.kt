@@ -499,6 +499,7 @@ private fun UndoPill(enabled: Boolean, onClick: () -> Unit) {
 private fun ScorePill(score: Int) {
     Row(
         modifier = Modifier
+            .width(160.dp)
             .height(56.dp)
             .testTag("runningTotal")
             .semantics { contentDescription = "Score $score" }
@@ -508,8 +509,8 @@ private fun ScorePill(score: Int) {
                     listOf(MasterDiceColors.ScorePurple, MasterDiceColors.ScorePurpleDeep),
                 ),
             )
-            .border(2.5.dp, MasterDiceColors.BrassBright, RoundedCornerShape(12.dp))
-            .padding(horizontal = 18.dp),
+            .border(2.5.dp, MasterDiceColors.BrassBright, RoundedCornerShape(12.dp)),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
