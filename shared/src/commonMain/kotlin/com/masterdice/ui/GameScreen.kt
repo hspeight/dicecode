@@ -103,11 +103,11 @@ private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
 // deal_row.png: standalone 2400x580 asset rendered below the board —
-// a brass-bordered strip holding four dice wells aligned under the
-// grid columns and the peg square (track cx 2014 - 250).
+// a brass-bordered strip holding four dice wells evenly spaced across
+// its width (80px margins and gaps between the 500px dice).
 private const val DEAL_ASPECT = 580f / 2400f
-private const val DEAL_WELL_TOP_PX = 72.5f
-private val BOARD_DICE_COLS_PX = floatArrayOf(98f, 630f, 1162f, 1764f)
+private const val DEAL_DIE_TOP_PX = 40f
+private val BOARD_DICE_COLS_PX = floatArrayOf(80f, 660f, 1240f, 1820f)
 
 @Composable
 fun GameScreen(
@@ -1266,7 +1266,7 @@ private fun DiceRow(
     onIntent: (GameIntent) -> Unit,
 ) {
     val colX = BOARD_DICE_COLS_PX.map { boardW * (it / 2400f) }
-    val rowTop = boardW * (DEAL_WELL_TOP_PX / 2400f)
+    val rowTop = boardW * (DEAL_DIE_TOP_PX / 2400f)
     // The die art is a rounded square covering an inscribed 0.87 square;
     // dice-row cells sit fully behind the die, centered on the wells.
     val diceCell = cell * 0.87f
