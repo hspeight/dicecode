@@ -1345,6 +1345,7 @@ private fun CellWell(
                                 if (target != null &&
                                     isLegalMove(currentState, s.from, target)
                                 ) {
+                                    SoundFx.tap()
                                     currentOnIntent(GameIntent.Move(s.from, target))
                                     dd.finish()
                                 } else {
