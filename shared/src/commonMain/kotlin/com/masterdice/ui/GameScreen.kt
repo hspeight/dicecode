@@ -91,11 +91,11 @@ import kotlin.math.roundToInt
 
 private val WellShape = RoundedCornerShape(10.dp)
 
-// board_4x10.png geometry (pixels of the 2400x6014 source artwork; the
+// board_4x10.png geometry (pixels of the 2400x6052 source artwork; the
 // bundled resource is a 0.6x downscale — identical fractions): 10 rows of
-// 3 square wells plus a continuous recessed peg track, then a bottom row
-// of 4 dice wells — the last centered under the track.
-private const val BOARD_ASPECT = 6014f / 2400f
+// 3 square wells plus a continuous recessed peg track, then a framed
+// bottom row of 4 dice wells.
+private const val BOARD_ASPECT = 6052f / 2400f
 private const val BOARD_WELL_PX = 500f
 private val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f)
 private const val BOARD_TRACK_CX_PX = 2014f
@@ -103,8 +103,8 @@ private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
 // Bottom dice row: four wells at the 532px pitch, centered on the board
-// (152px margins both sides); top at 98 + 10 pitches.
-private const val BOARD_DICE_ROW_TOP_PX = 5440f
+// (152px margins both sides) inside a bordered strip below the grid.
+private const val BOARD_DICE_ROW_TOP_PX = 5472f
 private val BOARD_DICE_COLS_PX = floatArrayOf(152f, 684f, 1216f, 1748f)
 
 @Composable
