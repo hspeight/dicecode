@@ -82,6 +82,7 @@ import com.masterdice.platform.SoundFx
 import com.masterdice.platform.debugToolsEnabled
 import com.masterdice.resources.Res
 import com.masterdice.resources.board_4x10
+import com.masterdice.resources.deal_row
 import com.masterdice.resources.enter_key
 import com.masterdice.resources.pointing_hand
 import androidx.compose.ui.layout.ContentScale
@@ -91,20 +92,21 @@ import kotlin.math.roundToInt
 
 private val WellShape = RoundedCornerShape(10.dp)
 
-// board_4x10.png geometry (pixels of the 2400x6052 source artwork; the
+// board_4x10.png geometry (pixels of the 2400x5482 source artwork; the
 // bundled resource is a 0.6x downscale — identical fractions): 10 rows of
-// 3 square wells plus a continuous recessed peg track, then a framed
-// bottom row of 4 dice wells.
-private const val BOARD_ASPECT = 6052f / 2400f
+// 3 square wells plus a continuous recessed peg track.
+private const val BOARD_ASPECT = 5482f / 2400f
 private const val BOARD_WELL_PX = 500f
 private val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f)
 private const val BOARD_TRACK_CX_PX = 2014f
 private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
-// Bottom dice row: four wells aligned under the grid columns and the peg
-// square (track cx 2014 - 250), inside a bordered strip below the grid.
-private const val BOARD_DICE_ROW_TOP_PX = 5472f
+// deal_row.png: standalone 2400x580 asset rendered below the board —
+// a brass-bordered strip holding four dice wells aligned under the
+// grid columns and the peg square (track cx 2014 - 250).
+private const val DEAL_ASPECT = 580f / 2400f
+private const val DEAL_WELL_TOP_PX = 72.5f
 private val BOARD_DICE_COLS_PX = floatArrayOf(98f, 630f, 1162f, 1764f)
 
 @Composable
@@ -164,10 +166,10 @@ fun GameScreen(
         val gap = 6.dp
         // The board is a fixed-aspect artwork scaled from boardW; its width
         // is bound by whichever is tighter — the column width, or the height
-        // budget once the header and spacers are paid for.
+        // budget once the header, deal row, and spacers are paid for.
         val boardW = minOf(
             maxBoardWidth - 16.dp,
-            (maxHeight - 80.dp) / BOARD_ASPECT,
+            (maxHeight - 80.dp - gap) / (BOARD_ASPECT + DEAL_ASPECT),
         ) * 0.81f
         val boardH = boardW * BOARD_ASPECT
         // One cell = one artwork well (500px of the 2400px-wide image);
@@ -287,8 +289,6 @@ fun GameScreen(
                         onEmptyTap = { slot -> hintCell = slot },
                     )
                 }
-                // Bottom row: the four dealt dice, seated in artwork wells.
-                DiceRow(state, boardW, cell, dd, onIntent)
                 if (state.status != GameStatus.PLAYING) {
                     EndPanel(
                         state,
@@ -300,12 +300,25 @@ fun GameScreen(
                     )
                 }
             }
+
+            // Standalone deal row: a brass-bordered strip holding the
+            // four dealt dice, detached below the board.
+            Spacer(Modifier.height(gap))
+            Box(modifier = Modifier.size(boardW, boardW * DEAL_ASPECT)) {
+                Image(
+                    painter = painterResource(Res.drawable.deal_row),
+                    contentDescription = null,
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier.matchParentSize(),
+                )
+                DiceRow(state, boardW, cell, dd, onIntent)
+            }
         }
 
         DragOverlay(dd, dieSize)
 
         // Hint bubble above an empty active cell that was tapped, plus a
-        // finger bouncing over the deal tray.
+        // finger bouncing over the deal row.
         hintCell?.let { slot ->
             dd.centerOf(slot)?.let { center ->
                 HintBubble(
@@ -1243,7 +1256,7 @@ private fun EnterCell(state: GameState, size: Dp, onIntent: (GameIntent) -> Unit
     }
 }
 
-/** The four dealt dice, seated in the board's bottom-row wells. */
+/** The four dealt dice, seated in the standalone deal-row wells. */
 @Composable
 private fun DiceRow(
     state: GameState,
@@ -1253,7 +1266,7 @@ private fun DiceRow(
     onIntent: (GameIntent) -> Unit,
 ) {
     val colX = BOARD_DICE_COLS_PX.map { boardW * (it / 2400f) }
-    val rowTop = boardW * (BOARD_DICE_ROW_TOP_PX / 2400f)
+    val rowTop = boardW * (DEAL_WELL_TOP_PX / 2400f)
     // The die art is a rounded square covering an inscribed 0.87 square;
     // dice-row cells sit fully behind the die, centered on the wells.
     val diceCell = cell * 0.87f
