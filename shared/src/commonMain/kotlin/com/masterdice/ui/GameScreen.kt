@@ -102,10 +102,10 @@ private const val BOARD_TRACK_CX_PX = 2014f
 private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
-// Bottom dice row: four wells at the 532px pitch, centered on the board
-// (152px margins both sides) inside a bordered strip below the grid.
+// Bottom dice row: four wells aligned under the grid columns and the peg
+// square (track cx 2014 - 250), inside a bordered strip below the grid.
 private const val BOARD_DICE_ROW_TOP_PX = 5472f
-private val BOARD_DICE_COLS_PX = floatArrayOf(152f, 684f, 1216f, 1748f)
+private val BOARD_DICE_COLS_PX = floatArrayOf(98f, 630f, 1162f, 1764f)
 
 @Composable
 fun GameScreen(
