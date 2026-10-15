@@ -102,10 +102,10 @@ private const val BOARD_TRACK_CX_PX = 2014f
 private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
-// Bottom dice row: four wells on the guess columns' 532px pitch
-// (98, 630, 1162, 1694); top at 98 + 10 pitches.
+// Bottom dice row: four wells at the 532px pitch, centered on the board
+// (152px margins both sides); top at 98 + 10 pitches.
 private const val BOARD_DICE_ROW_TOP_PX = 5416f
-private const val BOARD_DICE_COL4_PX = 1694f
+private val BOARD_DICE_COLS_PX = floatArrayOf(152f, 684f, 1216f, 1748f)
 
 @Composable
 fun GameScreen(
@@ -1249,7 +1249,7 @@ private fun DiceRow(
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
-    val colX = (BOARD_COLS_PX + BOARD_DICE_COL4_PX).map { boardW * (it / 2400f) }
+    val colX = BOARD_DICE_COLS_PX.map { boardW * (it / 2400f) }
     val rowTop = boardW * (BOARD_DICE_ROW_TOP_PX / 2400f)
     // The die art is a rounded square covering an inscribed 0.87 square;
     // dice-row cells sit fully behind the die, centered on the wells.
