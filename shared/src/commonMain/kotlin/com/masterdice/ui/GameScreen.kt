@@ -188,6 +188,9 @@ fun GameScreen(
                 .padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            // Score badge: large and centered on its own row.
+            ScorePill(totalScore)
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -206,9 +209,6 @@ fun GameScreen(
                 SettingsButton(onClick = { showSettings = true })
                 HelpButton(onClick = { showHelp = true })
             }
-
-            // Score badge: large and centered on its own row.
-            ScorePill(totalScore)
 
             Box(modifier = Modifier.size(boardW, boardH)) {
                 Image(
@@ -477,7 +477,7 @@ private fun UndoPill(enabled: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** Large purple SCORE badge with a crown, centered below the controls. */
+/** Large purple SCORE badge, centered on its own row above the controls. */
 @Composable
 private fun ScorePill(score: Int) {
     Row(
@@ -495,23 +495,7 @@ private fun ScorePill(score: Int) {
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Canvas(Modifier.size(22.dp)) {
-            val w = size.width
-            val h = size.height
-            val crown = Path().apply {
-                moveTo(w * 0.08f, h * 0.82f)
-                lineTo(w * 0.92f, h * 0.82f)
-                lineTo(w * 0.88f, h * 0.30f)
-                lineTo(w * 0.68f, h * 0.54f)
-                lineTo(w * 0.50f, h * 0.16f)
-                lineTo(w * 0.32f, h * 0.54f)
-                lineTo(w * 0.12f, h * 0.30f)
-                close()
-            }
-            drawPath(crown, MasterDiceColors.BrassBright)
-        }
-        Spacer(Modifier.width(10.dp))
-        Column {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             BasicText(
                 text = "SCORE",
                 style = TextStyle(
