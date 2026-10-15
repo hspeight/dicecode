@@ -1255,8 +1255,8 @@ private fun DiceRow(
     val colX = BOARD_DICE_COLS_PX.map { boardW * (it / 2400f) }
     val rowTop = boardW * (BOARD_DICE_ROW_TOP_PX / 2400f)
     // The die art is a rounded square covering an inscribed 0.87 square;
-    // dice-row cells sit fully behind the die, centered on the wells.
-    val diceCell = cell * 0.87f
+    // dice-row cells sit fully behind the die at 0.85, centered on the wells.
+    val diceCell = cell * 0.85f
     val inset = (cell - diceCell) / 2
 
     for (i in 0 until TRAY_SIZE) {
