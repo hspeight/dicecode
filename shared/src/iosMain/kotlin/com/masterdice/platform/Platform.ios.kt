@@ -20,3 +20,8 @@ actual val debugToolsEnabled: Boolean get() = kotlin.native.Platform.isDebugBina
 actual fun playTapSound() {
     AudioServicesPlaySystemSound(1104u)
 }
+
+// System sound 1057 ("Tink") — a soft chime for submit.
+actual fun playSubmitSound() {
+    AudioServicesPlaySystemSound(1057u)
+}

@@ -1224,7 +1224,10 @@ private fun EnterCell(state: GameState, size: Dp, onIntent: (GameIntent) -> Unit
             }
             .pointerInput(enabled) {
                 if (enabled) {
-                    detectTapGestures { onIntent(GameIntent.Submit) }
+                    detectTapGestures {
+                        SoundFx.submit()
+                        onIntent(GameIntent.Submit)
+                    }
                 }
             },
         contentAlignment = Alignment.Center,
