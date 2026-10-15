@@ -97,14 +97,15 @@ private val WellShape = RoundedCornerShape(10.dp)
 private const val BOARD_ASPECT = 5482f / 2400f
 private const val BOARD_WELL_PX = 500f
 private val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f)
-private const val BOARD_TRACK_CX_PX = 2010f
+private const val BOARD_TRACK_CX_PX = 2014f
 private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
-// deal_tray.png is 2292x697; rendered at boardW*2292/2400 wide, its wells land
-// on exactly the same grid as the board's.
-private const val TRAY_ASPECT = 697f / 2292f
-private val TRAY_COLS_PX = floatArrayOf(98f, 630f, 1162f, 1693f)
+// deal_tray.png is 2400x696 — a board-width strip of four wells at the
+// grid's pitch, centered; rendered at boardW, its wells land on exactly
+// the same grid as the board's.
+private const val TRAY_ASPECT = 696f / 2400f
+private val TRAY_COLS_PX = floatArrayOf(152f, 684f, 1216f, 1748f)
 private const val TRAY_ROW_TOP_PX = 98f
 
 @Composable
@@ -167,7 +168,7 @@ fun GameScreen(
         // height budget once the header and spacers are paid for.
         val boardW = minOf(
             maxBoardWidth - 16.dp,
-            (maxHeight - 80.dp) / (BOARD_ASPECT + 697f / 2400f),
+            (maxHeight - 80.dp) / (BOARD_ASPECT + TRAY_ASPECT),
         ) * 0.81f
         val boardH = boardW * BOARD_ASPECT
         // One cell = one artwork well (500px of the 2400px-wide image).
@@ -1260,9 +1261,9 @@ private fun TrayRow(
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
-    val trayW = boardW * (2292f / 2400f)
-    val colX = TRAY_COLS_PX.map { trayW * (it / 2292f) }
-    val rowTop = trayW * (TRAY_ROW_TOP_PX / 2292f)
+    val trayW = boardW // the tray strip is as wide as the board
+    val colX = TRAY_COLS_PX.map { trayW * (it / 2400f) }
+    val rowTop = trayW * (TRAY_ROW_TOP_PX / 2400f)
     // The die art is a rounded square covering an inscribed 0.87 square;
     // tray cells sit fully behind the die, centered on the wells.
     val trayCell = cell * 0.87f
