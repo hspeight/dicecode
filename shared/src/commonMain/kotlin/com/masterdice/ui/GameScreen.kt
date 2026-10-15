@@ -45,8 +45,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -186,85 +188,24 @@ fun GameScreen(
                 .padding(horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Box(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Column(
-                    modifier = Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-//                    Row(verticalAlignment = Alignment.CenterVertically) {
-//                        BasicText(
-//                            text = "◆",
-//                            style = TextStyle(
-//                                color = MasterDiceColors.BrassBright.copy(alpha = 0.6f),
-//                                fontSize = 10.sp,
-//                            ),
-//                        )
-//                        Spacer(Modifier.width(8.dp))
-//                        BasicText(
-//                            text = "Master Dice",
-//                            style = TextStyle(
-//                                color = MasterDiceColors.BrassBright,
-//                                fontSize = 22.sp,
-//                                fontFamily = FontFamily.Serif,
-//                                fontWeight = FontWeight.SemiBold,
-//                                letterSpacing = 1.sp,
-//                            ),
-//                        )
-//                        Spacer(Modifier.width(8.dp))
-//                        BasicText(
-//                            text = "◆",
-//                            style = TextStyle(
-//                                color = MasterDiceColors.BrassBright.copy(alpha = 0.6f),
-//                                fontSize = 10.sp,
-//                            ),
-//                        )
-//                    }
-                    val turn = if (state.status == GameStatus.PLAYING)
-                        (state.guesses.size + 1).coerceAtMost(ROWS)
-                    else state.guesses.size
-                    BasicText(
-                        text = "GUESS $turn / $ROWS",
-                        style = TextStyle(
-                            color = MasterDiceColors.Ivory.copy(alpha = 0.55f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 2.sp,
-                        ),
-                    )
-                    BasicText(
-                        text = "SCORE $totalScore",
-                        style = TextStyle(
-                            color = MasterDiceColors.BrassBright.copy(alpha = 0.7f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 2.sp,
-                        ),
-                        modifier = Modifier.testTag("runningTotal"),
-                    )
-                }
+                UndoPill(
+                    enabled = state.guesses.isNotEmpty(),
+                    onClick = { onIntent(GameIntent.UndoGuess) },
+                )
                 if (debugToolsEnabled) {
-                    Row(
-                        modifier = Modifier.align(Alignment.CenterStart),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    ) {
-                        DebugDealButton(onClick = { showDealPicker = true })
-                        DebugUndoButton(
-                            enabled = state.guesses.isNotEmpty(),
-                            onClick = { onIntent(GameIntent.UndoGuess) },
-                        )
-                    }
+                    DebugDealButton(onClick = { showDealPicker = true })
                 }
-                Row(
-                    modifier = Modifier.align(Alignment.CenterEnd),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    SettingsButton(onClick = { showSettings = true })
-                    HelpButton(onClick = { showHelp = true })
-                }
+                Spacer(Modifier.weight(1f))
+                ScorePill(totalScore)
+                SettingsButton(onClick = { showSettings = true })
+                HelpButton(onClick = { showHelp = true })
             }
 
             Box(modifier = Modifier.size(boardW, boardH)) {
@@ -359,24 +300,43 @@ fun GameScreen(
     }
 }
 
+/** Gold circular header button with an ink glyph inside. */
 @Composable
-private fun HelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun GoldIconButton(
+    tag: String,
+    description: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
     Box(
         modifier = modifier
-            .size(32.dp)
-            .testTag("help")
-            .semantics { contentDescription = "Show game rules" }
-            .clip(RoundedCornerShape(50))
-            .background(MasterDiceColors.Brass.copy(alpha = 0.25f))
-            .border(1.dp, MasterDiceColors.Brass.copy(alpha = 0.6f), RoundedCornerShape(50))
+            .size(34.dp)
+            .testTag(tag)
+            .semantics { contentDescription = description }
+            .clip(CircleShape)
+            .background(goldPillBrush())
+            .border(1.5.dp, MasterDiceColors.GoldLow, CircleShape)
             .pointerInput(Unit) { detectTapGestures { onClick() } },
         contentAlignment = Alignment.Center,
+    ) {
+        content()
+    }
+}
+
+@Composable
+private fun HelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    GoldIconButton(
+        tag = "help",
+        description = "Show game rules",
+        onClick = onClick,
+        modifier = modifier,
     ) {
         BasicText(
             text = "?",
             style = TextStyle(
-                color = MasterDiceColors.Brass,
-                fontSize = 15.sp,
+                color = MasterDiceColors.InkBrown,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
             ),
         )
@@ -385,26 +345,21 @@ private fun HelpButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(32.dp)
-            .testTag("settings")
-            .semantics { contentDescription = "Open settings" }
-            .clip(RoundedCornerShape(50))
-            .background(MasterDiceColors.Brass.copy(alpha = 0.25f))
-            .border(1.dp, MasterDiceColors.Brass.copy(alpha = 0.6f), RoundedCornerShape(50))
-            .pointerInput(Unit) { detectTapGestures { onClick() } },
-        contentAlignment = Alignment.Center,
+    GoldIconButton(
+        tag = "settings",
+        description = "Open settings",
+        onClick = onClick,
+        modifier = modifier,
     ) {
         Canvas(Modifier.size(15.dp)) {
-            val brass = MasterDiceColors.Brass
+            val ink = MasterDiceColors.InkBrown
             val c = center
             val r = size.minDimension / 2f
             // Eight gear teeth as short radial strokes, then the hub ring.
             for (i in 0 until 8) {
                 val a = i * kotlin.math.PI / 4
                 drawLine(
-                    color = brass,
+                    color = ink,
                     start = Offset(
                         (c.x + kotlin.math.cos(a) * r * 0.72f).toFloat(),
                         (c.y + kotlin.math.sin(a) * r * 0.72f).toFloat(),
@@ -417,8 +372,8 @@ private fun SettingsButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
                     cap = StrokeCap.Round,
                 )
             }
-            drawCircle(color = brass, radius = r * 0.58f, center = c)
-            drawCircle(color = MasterDiceColors.Board, radius = r * 0.3f, center = c)
+            drawCircle(color = ink, radius = r * 0.58f, center = c)
+            drawCircle(color = MasterDiceColors.Gold, radius = r * 0.3f, center = c)
         }
     }
 }
@@ -448,30 +403,132 @@ private fun DebugDealButton(onClick: () -> Unit, modifier: Modifier = Modifier) 
     }
 }
 
+/** Champagne-gold pill used by the header controls. */
+private fun goldPillBrush() = Brush.verticalGradient(
+    listOf(MasterDiceColors.GoldHi, MasterDiceColors.Gold, MasterDiceColors.GoldLow),
+)
+
+/** Gold UNDO pill: curved-arrow glyph + label, like the reference header. */
 @Composable
-private fun DebugUndoButton(enabled: Boolean, onClick: () -> Unit) {
-    Box(
+private fun UndoPill(enabled: Boolean, onClick: () -> Unit) {
+    Row(
         modifier = Modifier
-            .size(32.dp)
-            .testTag("debugUndo")
-            .semantics { contentDescription = "Undo last guess (debug)" }
+            .height(34.dp)
+            .testTag("undo")
+            .semantics { contentDescription = "Undo last guess" }
             .clip(RoundedCornerShape(50))
-            .background(MasterDiceColors.RowPanel)
-            .border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.3f), RoundedCornerShape(50))
-            .graphicsLayer { alpha = if (enabled) 1f else 0.35f }
+            .background(goldPillBrush())
+            .border(1.5.dp, MasterDiceColors.GoldLow, RoundedCornerShape(50))
+            .graphicsLayer { alpha = if (enabled) 1f else 0.4f }
             .pointerInput(enabled) {
                 if (enabled) detectTapGestures { onClick() }
-            },
-        contentAlignment = Alignment.Center,
+            }
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Canvas(Modifier.size(14.dp)) {
+            val ink = MasterDiceColors.InkBrown
+            val r = size.minDimension / 2f
+            val ring = r * 0.72f
+            // Arc from just below the head, sweeping clockwise around the top.
+            drawArc(
+                color = ink,
+                startAngle = 175f,
+                sweepAngle = 290f,
+                useCenter = false,
+                topLeft = Offset(r - ring, r - ring),
+                size = Size(ring * 2, ring * 2),
+                style = Stroke(width = r * 0.3f, cap = StrokeCap.Round),
+            )
+            // Arrowhead at the arc start (left side, ~9 o'clock).
+            val a = kotlin.math.PI * 175.0 / 180.0
+            val tipX = r + ring * kotlin.math.cos(a).toFloat()
+            val tipY = r + ring * kotlin.math.sin(a).toFloat()
+            val tx = kotlin.math.sin(a).toFloat()
+            val ty = -kotlin.math.cos(a).toFloat()
+            val nx = kotlin.math.cos(a).toFloat()
+            val ny = kotlin.math.sin(a).toFloat()
+            val head = Path().apply {
+                moveTo(tipX + tx * r * 0.55f, tipY + ty * r * 0.55f)
+                lineTo(
+                    tipX - tx * r * 0.35f + nx * r * 0.5f,
+                    tipY - ty * r * 0.35f + ny * r * 0.5f,
+                )
+                lineTo(
+                    tipX - tx * r * 0.35f - nx * r * 0.5f,
+                    tipY - ty * r * 0.35f - ny * r * 0.5f,
+                )
+                close()
+            }
+            drawPath(head, ink)
+        }
+        Spacer(Modifier.width(5.dp))
         BasicText(
             text = "UNDO",
             style = TextStyle(
-                color = MasterDiceColors.Ivory.copy(alpha = 0.55f),
-                fontSize = 6.5.sp,
+                color = MasterDiceColors.InkBrown,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
+                letterSpacing = 0.5.sp,
             ),
         )
+    }
+}
+
+/** Purple SCORE pill with a small crown, like the reference header. */
+@Composable
+private fun ScorePill(score: Int) {
+    Row(
+        modifier = Modifier
+            .height(34.dp)
+            .testTag("runningTotal")
+            .semantics { contentDescription = "Score $score" }
+            .clip(RoundedCornerShape(50))
+            .background(
+                Brush.verticalGradient(
+                    listOf(MasterDiceColors.ScorePurple, MasterDiceColors.ScorePurpleDeep),
+                ),
+            )
+            .border(1.5.dp, MasterDiceColors.BrassBright, RoundedCornerShape(50))
+            .padding(horizontal = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Canvas(Modifier.size(13.dp)) {
+            val w = size.width
+            val h = size.height
+            val crown = Path().apply {
+                moveTo(w * 0.08f, h * 0.82f)
+                lineTo(w * 0.92f, h * 0.82f)
+                lineTo(w * 0.88f, h * 0.30f)
+                lineTo(w * 0.68f, h * 0.54f)
+                lineTo(w * 0.50f, h * 0.16f)
+                lineTo(w * 0.32f, h * 0.54f)
+                lineTo(w * 0.12f, h * 0.30f)
+                close()
+            }
+            drawPath(crown, MasterDiceColors.BrassBright)
+        }
+        Spacer(Modifier.width(6.dp))
+        Column {
+            BasicText(
+                text = "SCORE",
+                style = TextStyle(
+                    color = MasterDiceColors.GoldHi.copy(alpha = 0.85f),
+                    fontSize = 6.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    letterSpacing = 1.5.sp,
+                ),
+            )
+            BasicText(
+                text = score.toString()
+                    .reversed().chunked(3).joinToString(",").reversed(),
+                style = TextStyle(
+                    color = MasterDiceColors.GoldHi,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+        }
     }
 }
 

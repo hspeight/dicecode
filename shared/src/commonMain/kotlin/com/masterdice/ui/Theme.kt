@@ -17,10 +17,18 @@ object MasterDiceColors {
     val SubmittedPanel = Color(0xFF141C2A)
     val SubmittedPanelBorder = Color(0xFF33425C)
 
-    // Felt vignette (Stitch tabletop-felt, in the board's slate range).
-    val FeltLight = Color(0xFF1F3050)
-    val FeltMid = Color(0xFF111B2E)
-    val FeltDark = Color(0xFF070D17)
+    // Felt vignette (casino tabletop green — lit centre, deep edges).
+    val FeltLight = Color(0xFF1C7A36)
+    val FeltMid = Color(0xFF0D4C1C)
+    val FeltDark = Color(0xFF03180A)
+
+    // Header pills: champagne-gold buttons, ink glyphs, purple score.
+    val GoldHi = Color(0xFFFFE9A8)
+    val Gold = Color(0xFFE3B64B)
+    val GoldLow = Color(0xFFB07E14)
+    val InkBrown = Color(0xFF4A2E07)
+    val ScorePurple = Color(0xFF6D28D9)
+    val ScorePurpleDeep = Color(0xFF4C1D95)
 }
 
 fun colourName(colour: DieColour): String = when (colour) {
