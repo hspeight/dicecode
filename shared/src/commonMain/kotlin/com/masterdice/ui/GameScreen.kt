@@ -485,13 +485,13 @@ private fun ScorePill(score: Int) {
             .height(56.dp)
             .testTag("runningTotal")
             .semantics { contentDescription = "Score $score" }
-            .clip(RoundedCornerShape(50))
+            .clip(RoundedCornerShape(12.dp))
             .background(
                 Brush.verticalGradient(
                     listOf(MasterDiceColors.ScorePurple, MasterDiceColors.ScorePurpleDeep),
                 ),
             )
-            .border(2.5.dp, MasterDiceColors.BrassBright, RoundedCornerShape(50))
+            .border(2.5.dp, MasterDiceColors.BrassBright, RoundedCornerShape(12.dp))
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
