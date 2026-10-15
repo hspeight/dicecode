@@ -81,7 +81,6 @@ import com.masterdice.platform.SoundFx
 import com.masterdice.platform.debugToolsEnabled
 import com.masterdice.resources.Res
 import com.masterdice.resources.board_4x10
-import com.masterdice.resources.deal_tray
 import com.masterdice.resources.enter_key
 import com.masterdice.resources.pointing_hand
 import androidx.compose.ui.layout.ContentScale
@@ -91,22 +90,21 @@ import kotlin.math.roundToInt
 
 private val WellShape = RoundedCornerShape(10.dp)
 
-// board_4x10.png geometry (pixels of the 2400x5482 source artwork; the
-// bundled resource is a 0.6x downscale — identical fractions): square wells
-// on a uniform grid — 3 guess columns plus a continuous recessed peg track.
-private const val BOARD_ASPECT = 5482f / 2400f
+// board_4x10.png geometry (pixels of the 2400x6014 source artwork; the
+// bundled resource is a 0.6x downscale — identical fractions): 10 rows of
+// 3 square wells plus a continuous recessed peg track, then a bottom row
+// of 4 dice wells — the last centered under the track.
+private const val BOARD_ASPECT = 6014f / 2400f
 private const val BOARD_WELL_PX = 500f
 private val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f)
 private const val BOARD_TRACK_CX_PX = 2014f
 private const val BOARD_ROW_TOP_PX = 98f
 private const val BOARD_ROW_PITCH_PX = 531.8f
 
-// deal_tray.png is 2400x696 — a board-width strip of four wells at the
-// grid's pitch, centered; rendered at boardW, its wells land on exactly
-// the same grid as the board's.
-private const val TRAY_ASPECT = 696f / 2400f
-private val TRAY_COLS_PX = floatArrayOf(152f, 684f, 1216f, 1748f)
-private const val TRAY_ROW_TOP_PX = 98f
+// Bottom dice row: wells under the guess columns plus one centered on the
+// track (2014 - 500/2); top at 98 + 10 pitches.
+private const val BOARD_DICE_ROW_TOP_PX = 5416f
+private const val BOARD_DICE_COL4_PX = 1764f
 
 @Composable
 fun GameScreen(
@@ -163,17 +161,17 @@ fun GameScreen(
     ) {
         val maxBoardWidth = if (maxWidth > 480.dp) 480.dp else maxWidth
         val gap = 6.dp
-        // Board and tray are fixed-aspect artworks scaled from boardW; its
-        // width is bound by whichever is tighter — the column width, or the
-        // height budget once the header and spacers are paid for.
+        // The board is a fixed-aspect artwork scaled from boardW; its width
+        // is bound by whichever is tighter — the column width, or the height
+        // budget once the header and spacers are paid for.
         val boardW = minOf(
             maxBoardWidth - 16.dp,
-            (maxHeight - 80.dp) / (BOARD_ASPECT + TRAY_ASPECT),
+            (maxHeight - 80.dp) / BOARD_ASPECT,
         ) * 0.81f
         val boardH = boardW * BOARD_ASPECT
-        // One cell = one artwork well (500px of the 2400px-wide image).
+        // One cell = one artwork well (500px of the 2400px-wide image);
+        // dice fill their wells edge to edge.
         val cell = boardW * (BOARD_WELL_PX / 2400f)
-        // Grid and tray share one size; dice fill their wells edge to edge.
         val dieSize = cell
         // 4th-column cell — sized to the enter key, centered on the peg track.
         val enterSize = dieSize * 0.9f
@@ -288,6 +286,8 @@ fun GameScreen(
                         onEmptyTap = { slot -> hintCell = slot },
                     )
                 }
+                // Bottom row: the four dealt dice, seated in artwork wells.
+                DiceRow(state, boardW, cell, dd, onIntent)
                 if (state.status != GameStatus.PLAYING) {
                     EndPanel(
                         state,
@@ -299,26 +299,6 @@ fun GameScreen(
                     )
                 }
             }
-
-            Spacer(Modifier.height(4.dp))
-//            Row(
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .padding(end = 4.dp),
-//                horizontalArrangement = Arrangement.End,
-//            ) {
-//                BasicText(
-//                    text = "DRAG INTO THE ROW",
-//                    style = TextStyle(
-//                        color = MasterDiceColors.Ivory.copy(alpha = 0.3f),
-//                        fontSize = 9.sp,
-//                        letterSpacing = 1.sp,
-//                    ),
-//                )
-//            }
-//            Spacer(Modifier.height(4.dp))
-
-            TrayRow(state, boardW, cell, dd, onIntent)
         }
 
         DragOverlay(dd, dieSize)
@@ -713,7 +693,7 @@ private fun HelpPanel(
             Spacer(Modifier.height(12.dp))
             RuleText("A hidden sequence of three dice is the solution. The tray holds those three plus one decoy — work out which three belong, and in what order.")
             Spacer(Modifier.height(8.dp))
-            RuleText("Drag dice from the tray into the active row — or tap a tray die to fill the first free cell. Tap or drag a placed die to return it to the tray. You have $ROWS guesses.")
+            RuleText("Drag dice from the bottom row into the active row — or tap a die to fill the first free cell. Tap or drag a placed die to return it to the bottom row. You have $ROWS guesses.")
             Spacer(Modifier.height(12.dp))
             if (showMatchIndicators) {
                 RuleLine("■", MasterDiceColors.GreenBorder, "Correct colour AND value")
@@ -1252,60 +1232,51 @@ private fun EnterCell(state: GameState, size: Dp, onIntent: (GameIntent) -> Unit
     }
 }
 
-/** Deal-tray artwork with the four tray cells overlaid on its wells. */
+/** The four dealt dice, seated in the board's bottom-row wells. */
 @Composable
-private fun TrayRow(
+private fun DiceRow(
     state: GameState,
     boardW: Dp,
     cell: Dp,
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
-    val trayW = boardW // the tray strip is as wide as the board
-    val colX = TRAY_COLS_PX.map { trayW * (it / 2400f) }
-    val rowTop = trayW * (TRAY_ROW_TOP_PX / 2400f)
+    val colX = (BOARD_COLS_PX + BOARD_DICE_COL4_PX).map { boardW * (it / 2400f) }
+    val rowTop = boardW * (BOARD_DICE_ROW_TOP_PX / 2400f)
     // The die art is a rounded square covering an inscribed 0.87 square;
-    // tray cells sit fully behind the die, centered on the wells.
-    val trayCell = cell * 0.87f
-    val inset = (cell - trayCell) / 2
+    // dice-row cells sit fully behind the die, centered on the wells.
+    val diceCell = cell * 0.87f
+    val inset = (cell - diceCell) / 2
 
-    Box(modifier = Modifier.size(trayW, trayW * TRAY_ASPECT)) {
-        Image(
-            painter = painterResource(Res.drawable.deal_tray),
-            contentDescription = null,
-            contentScale = ContentScale.FillBounds,
-            modifier = Modifier.matchParentSize(),
+    for (i in 0 until TRAY_SIZE) {
+        val slot = Slot.Tray(i)
+        val die = state.tray[i]
+        val draggingAway = dd.session?.from == slot
+        val highlighted = dd.session?.let { isLegalMove(state, it.from, slot) } == true
+        val canDrag = state.status == GameStatus.PLAYING && die != null && !draggingAway
+
+        CellWell(
+            slot = slot,
+            die = if (draggingAway) null else die,
+            cell = diceCell,
+            dieSize = cell,
+            dd = dd,
+            active = state.status == GameStatus.PLAYING,
+            alpha = 1f,
+            highlighted = highlighted,
+            feedback = null,
+            showMatchIndicator = true,
+            description = "Tray slot ${i + 1}: " +
+                (die?.let { "${colourName(it.colour)} ${it.value}" } ?: "empty"),
+            draggable = canDrag,
+            state = state,
+            onIntent = onIntent,
+            onTap = { SoundFx.tap(); onIntent(GameIntent.TapMove(slot)) },
+            modifier = Modifier.absoluteOffset(
+                x = colX[i] + inset,
+                y = rowTop + inset,
+            ),
         )
-        for (i in 0 until TRAY_SIZE) {
-            val slot = Slot.Tray(i)
-            val die = state.tray[i]
-            val draggingAway = dd.session?.from == slot
-            val highlighted = dd.session?.let { isLegalMove(state, it.from, slot) } == true
-            val canDrag = state.status == GameStatus.PLAYING && die != null && !draggingAway
-
-            CellWell(
-                slot = slot,
-                die = if (draggingAway) null else die,
-                cell = trayCell,
-                dieSize = cell,
-                dd = dd,
-                active = state.status == GameStatus.PLAYING,
-                alpha = 1f,
-                highlighted = highlighted,
-                feedback = null,
-                showMatchIndicator = true,
-                description = "Tray slot ${i + 1}: " +
-                    (die?.let { "${colourName(it.colour)} ${it.value}" } ?: "empty"),
-                draggable = canDrag,
-                state = state,
-                onIntent = onIntent,
-                onTap = { SoundFx.tap(); onIntent(GameIntent.TapMove(slot)) },
-                modifier = Modifier.absoluteOffset(
-                    x = colX[i] + inset,
-                    y = rowTop + inset,
-                ),
-            )
-        }
     }
 }
 
@@ -1507,7 +1478,7 @@ private fun HintBubble(anchor: Offset, aboveBy: Dp, onDismiss: () -> Unit) {
     Box(
         modifier = Modifier
             .testTag("cellHint")
-            .semantics { contentDescription = "Drag or tap a tray die to fill this cell" }
+            .semantics { contentDescription = "Drag or tap a die from the bottom row to fill this cell" }
             .layout { measurable, constraints ->
                 val placeable = measurable.measure(constraints)
                 layout(placeable.width, placeable.height) {
@@ -1528,7 +1499,7 @@ private fun HintBubble(anchor: Offset, aboveBy: Dp, onDismiss: () -> Unit) {
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {
         BasicText(
-            text = "Drag or tap a tray die to fill this cell",
+            text = "Drag or tap a die from the bottom row to fill this cell",
             style = TextStyle(
                 color = MasterDiceColors.Ivory,
                 fontSize = 11.sp,
@@ -1537,8 +1508,8 @@ private fun HintBubble(anchor: Offset, aboveBy: Dp, onDismiss: () -> Unit) {
     }
 }
 
-/** Pointing hand bobbing beside the deal tray, shown while the empty-cell
- * hint is up. Decorative — the message lives on the bubble. */
+/** Pointing hand bobbing beside the bottom dice row, shown while the
+ * empty-cell hint is up. Decorative — the message lives on the bubble. */
 @Composable
 private fun TrayPointer(dd: DragDropState, visible: Boolean) {
     val left = dd.boundsOf(Slot.Tray(0))
