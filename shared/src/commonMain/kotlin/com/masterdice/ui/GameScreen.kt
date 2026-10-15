@@ -77,6 +77,7 @@ import com.masterdice.game.Slot
 import com.masterdice.game.TRAY_SIZE
 import com.masterdice.game.gameScore
 import com.masterdice.game.isLegalMove
+import com.masterdice.platform.SoundFx
 import com.masterdice.platform.debugToolsEnabled
 import com.masterdice.resources.Res
 import com.masterdice.resources.board_4x10
@@ -125,6 +126,7 @@ fun GameScreen(
     var showDealPicker by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
     var showMatchIndicators by remember { mutableStateOf(false) }
+    var soundEnabled by remember { mutableStateOf(SoundFx.enabled) }
     // Slot.Cell that last received an empty-cell tap; drives the hint bubble.
     var hintCell by remember { mutableStateOf<Slot.Cell?>(null) }
     val reveal = remember { Animatable(1f) }
@@ -338,6 +340,12 @@ fun GameScreen(
 
         if (showSettings) {
             SettingsPanel(
+                soundEnabled = soundEnabled,
+                onToggleSound = {
+                    soundEnabled = it
+                    SoundFx.enabled = it
+                    SoundFx.tap() // audible confirm when toggled on
+                },
                 showMatchIndicators = showMatchIndicators,
                 onToggle = { showMatchIndicators = it },
                 onDismiss = { showSettings = false },
@@ -739,6 +747,8 @@ private fun HelpPanel(
 
 @Composable
 private fun SettingsPanel(
+    soundEnabled: Boolean,
+    onToggleSound: (Boolean) -> Unit,
     showMatchIndicators: Boolean,
     onToggle: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -771,75 +781,20 @@ private fun SettingsPanel(
                 ),
             )
             Spacer(Modifier.height(14.dp))
+            SettingsRow(
+                label = "Sound effects",
+                tag = "toggleSound",
+                checked = soundEnabled,
+                onToggle = onToggleSound,
+            )
             if (debugToolsEnabled) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        BasicText(
-                            text = "Colour match indicators",
-                            style = TextStyle(
-                                color = MasterDiceColors.Ivory.copy(alpha = 0.85f),
-                                fontSize = 14.sp,
-                            ),
-                        )
-                        BasicText(
-                            text = "DEBUG BUILD ONLY",
-                            style = TextStyle(
-                                color = MasterDiceColors.AmberBorder.copy(alpha = 0.8f),
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.5.sp,
-                            ),
-                        )
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    // Pill switch: brass track + knob when on, muted when off.
-                    Box(
-                        modifier = Modifier
-                            .size(width = 44.dp, height = 24.dp)
-                            .testTag("toggleMatchIndicators")
-                            .semantics {
-                                contentDescription =
-                                    "Colour match indicators, " +
-                                        if (showMatchIndicators) "on" else "off"
-                            }
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                if (showMatchIndicators) MasterDiceColors.Brass
-                                else MasterDiceColors.RowPanel
-                            )
-                            .border(
-                                1.dp,
-                                if (showMatchIndicators) MasterDiceColors.BrassBright
-                                else MasterDiceColors.SubmittedPanelBorder,
-                                RoundedCornerShape(50),
-                            )
-                            .pointerInput(showMatchIndicators) {
-                                detectTapGestures { onToggle(!showMatchIndicators) }
-                            }
-                            .padding(3.dp),
-                        contentAlignment = if (showMatchIndicators) Alignment.CenterEnd
-                        else Alignment.CenterStart,
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(16.dp)
-                                .background(
-                                    if (showMatchIndicators) MasterDiceColors.Board
-                                    else MasterDiceColors.Ivory.copy(alpha = 0.4f),
-                                    CircleShape,
-                                ),
-                        )
-                    }
-                }
-            } else {
-                BasicText(
-                    text = "No settings available.",
-                    style = TextStyle(
-                        color = MasterDiceColors.Ivory.copy(alpha = 0.5f),
-                        fontSize = 14.sp,
-                    ),
+                Spacer(Modifier.height(12.dp))
+                SettingsRow(
+                    label = "Colour match indicators",
+                    tag = "toggleMatchIndicators",
+                    checked = showMatchIndicators,
+                    onToggle = onToggle,
+                    badge = "DEBUG BUILD ONLY",
                 )
             }
             Spacer(Modifier.height(18.dp))
@@ -858,6 +813,75 @@ private fun SettingsPanel(
                     .background(MasterDiceColors.Brass)
                     .pointerInput(Unit) { detectTapGestures { onDismiss() } }
                     .padding(horizontal = 24.dp, vertical = 8.dp),
+            )
+        }
+    }
+}
+
+/** A labelled settings row with a pill switch. */
+@Composable
+private fun SettingsRow(
+    label: String,
+    tag: String,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+    badge: String? = null,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            BasicText(
+                text = label,
+                style = TextStyle(
+                    color = MasterDiceColors.Ivory.copy(alpha = 0.85f),
+                    fontSize = 14.sp,
+                ),
+            )
+            if (badge != null) {
+                BasicText(
+                    text = badge,
+                    style = TextStyle(
+                        color = MasterDiceColors.AmberBorder.copy(alpha = 0.8f),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.5.sp,
+                    ),
+                )
+            }
+        }
+        Spacer(Modifier.width(16.dp))
+        // Pill switch: brass track + knob when on, muted when off.
+        Box(
+            modifier = Modifier
+                .size(width = 44.dp, height = 24.dp)
+                .testTag(tag)
+                .semantics {
+                    contentDescription = "$label, " + if (checked) "on" else "off"
+                }
+                .clip(RoundedCornerShape(50))
+                .background(
+                    if (checked) MasterDiceColors.Brass else MasterDiceColors.RowPanel,
+                )
+                .border(
+                    1.dp,
+                    if (checked) MasterDiceColors.BrassBright
+                    else MasterDiceColors.SubmittedPanelBorder,
+                    RoundedCornerShape(50),
+                )
+                .pointerInput(checked) {
+                    detectTapGestures { onToggle(!checked) }
+                }
+                .padding(3.dp),
+            contentAlignment = if (checked) Alignment.CenterEnd
+            else Alignment.CenterStart,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp)
+                    .background(
+                        if (checked) MasterDiceColors.Board
+                        else MasterDiceColors.Ivory.copy(alpha = 0.4f),
+                        CircleShape,
+                    ),
             )
         }
     }
@@ -941,7 +965,7 @@ private fun BoxScope.GuessRow(
             draggable = isActive && die != null && !draggingAway,
             state = state,
             onIntent = onIntent,
-            onTap = { onIntent(GameIntent.TapMove(slot)) },
+            onTap = { SoundFx.tap(); onIntent(GameIntent.TapMove(slot)) },
             onEmptyTap = { onEmptyTap(slot) },
             modifier = Modifier.absoluteOffset(x = colX[col], y = rowTop),
         )
@@ -1274,7 +1298,7 @@ private fun TrayRow(
                 draggable = canDrag,
                 state = state,
                 onIntent = onIntent,
-                onTap = { onIntent(GameIntent.TapMove(slot)) },
+                onTap = { SoundFx.tap(); onIntent(GameIntent.TapMove(slot)) },
                 modifier = Modifier.absoluteOffset(
                     x = colX[i] + inset,
                     y = rowTop + inset,
