@@ -902,7 +902,7 @@ private fun SettingsRow(
                 .background(MasterDiceColors.Board)
                 .border(1.dp, MasterDiceColors.Gold.copy(alpha = 0.4f), RoundedCornerShape(50)),
         ) {
-            for (on in listOf(true, false)) {
+            for (on in listOf(false, true)) {
                 val active = checked == on
                 Box(
                     modifier = Modifier
