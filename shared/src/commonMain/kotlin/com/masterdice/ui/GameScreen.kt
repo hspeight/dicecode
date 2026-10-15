@@ -922,6 +922,10 @@ private fun BoxScope.GuessRow(
         boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 2400f)
     // Center-x of the baked peg track that replaces the 4th well column.
     val trackCx = boardW * (BOARD_TRACK_CX_PX / 2400f)
+    // Cell boxes are 2% smaller than the wells, centered; dice and feedback
+    // rings keep the full cell size.
+    val cellBox = cell * 0.98f
+    val cellInset = (cell - cellBox) / 2
 
     for (col in 0 until GUESS_SIZE) {
         val slot = Slot.Cell(row, col)
@@ -935,7 +939,7 @@ private fun BoxScope.GuessRow(
         CellWell(
             slot = slot,
             die = if (draggingAway) null else die,
-            cell = cell,
+            cell = cellBox,
             dieSize = dieSize,
             dd = dd,
             active = isActive,
@@ -949,7 +953,10 @@ private fun BoxScope.GuessRow(
             onIntent = onIntent,
             onTap = { SoundFx.tap(); onIntent(GameIntent.TapMove(slot)) },
             onEmptyTap = { onEmptyTap(slot) },
-            modifier = Modifier.absoluteOffset(x = colX[col], y = rowTop),
+            modifier = Modifier.absoluteOffset(
+                x = colX[col] + cellInset,
+                y = rowTop + cellInset,
+            ),
         )
     }
 
@@ -1113,7 +1120,6 @@ private fun CellWell(
     Box(
         modifier = modifier
             .size(cell)
-            .then(glowModifier)
             .then(
                 if (slot is Slot.Cell) Modifier.testTag("cell-${slot.row}-${slot.col}")
                 else Modifier.testTag("tray-${(slot as Slot.Tray).index}")
@@ -1185,7 +1191,6 @@ private fun CellWell(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(borderModifier)
                 .drawWithContent {
                     drawContent()
                     // "+" hint = empty drop target in the active row.
@@ -1197,9 +1202,15 @@ private fun CellWell(
                 },
             contentAlignment = Alignment.Center,
         ) {
+            // Feedback ring hugs the die footprint, not the (smaller) cell.
+            Box(
+                Modifier
+                    .requiredSize(dieSize)
+                    .then(glowModifier)
+                    .then(borderModifier),
+            )
             if (die != null) {
-                // requiredSize lets the die overflow a smaller cell box
-                // (tray cells sit at 0.87 under the full-size die).
+                // requiredSize lets the die overflow a smaller cell box.
                 DieView(
                     die = die,
                     size = dieSize,
