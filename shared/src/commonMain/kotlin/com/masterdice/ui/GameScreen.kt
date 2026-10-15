@@ -801,128 +801,235 @@ private fun SettingsPanel(
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 32.dp)
-                .clip(WellShape)
-                .background(MasterDiceColors.Board)
-                .border(1.dp, MasterDiceColors.Brass, WellShape)
-                .padding(20.dp)
+                .width(230.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(MasterDiceColors.FeltMid, MasterDiceColors.FeltDark),
+                    ),
+                )
+                .border(1.5.dp, MasterDiceColors.Gold, RoundedCornerShape(16.dp))
+                .padding(12.dp)
                 // Swallow taps on the card itself so it doesn't dismiss.
                 .pointerInput(Unit) { detectTapGestures { } },
         ) {
-            BasicText(
-                text = "Settings",
-                style = TextStyle(
-                    color = MasterDiceColors.Ivory,
-                    fontSize = 20.sp,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.Bold,
-                ),
-            )
-            Spacer(Modifier.height(14.dp))
+            // Title bar: gear tile + heading + gold close button.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(goldPillBrush())
+                        .border(1.5.dp, MasterDiceColors.GoldLow, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Canvas(Modifier.size(14.dp)) { drawGear(MasterDiceColors.InkBrown) }
+                }
+                Spacer(Modifier.width(10.dp))
+                BasicText(
+                    text = "SETTINGS",
+                    modifier = Modifier.weight(1f),
+                    style = TextStyle(
+                        color = MasterDiceColors.GoldHi,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 2.sp,
+                    ),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .testTag("settingsClose")
+                        .semantics { contentDescription = "Close settings" }
+                        .clip(CircleShape)
+                        .background(goldPillBrush())
+                        .border(1.5.dp, MasterDiceColors.GoldLow, CircleShape)
+                        .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Canvas(Modifier.size(11.dp)) {
+                        val ink = MasterDiceColors.InkBrown
+                        val w = size.minDimension * 0.24f
+                        drawLine(ink, Offset(w, w), Offset(size.width - w, size.height - w), w * 0.8f, StrokeCap.Round)
+                        drawLine(ink, Offset(size.width - w, w), Offset(w, size.height - w), w * 0.8f, StrokeCap.Round)
+                    }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
             SettingsRow(
-                label = "Sound effects",
+                label = "SOUND FX",
                 tag = "toggleSound",
                 checked = soundEnabled,
                 onToggle = onToggleSound,
-            )
+            ) {
+                drawSpeaker(MasterDiceColors.Gold)
+            }
             if (debugToolsEnabled) {
-                Spacer(Modifier.height(12.dp))
+                Spacer(Modifier.height(10.dp))
                 SettingsRow(
-                    label = "Colour match indicators",
+                    label = "MATCH TINTS",
                     tag = "toggleMatchIndicators",
                     checked = showMatchIndicators,
                     onToggle = onToggle,
-                    badge = "DEBUG BUILD ONLY",
-                )
+                ) {
+                    val r = size.minDimension / 2f
+                    drawCircle(MasterDiceColors.GreenBorder, r * 0.5f, Offset(r * 0.62f, r))
+                    drawCircle(MasterDiceColors.AmberBorder, r * 0.5f, Offset(r * 1.38f, r))
+                }
             }
-            Spacer(Modifier.height(18.dp))
-            BasicText(
-                text = "Done",
-                style = TextStyle(
-                    color = MasterDiceColors.Board,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                ),
+            Spacer(Modifier.height(12.dp))
+            Box(
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
+                    .fillMaxWidth()
+                    .height(40.dp)
                     .testTag("settingsDone")
-                    .semantics { contentDescription = "Close settings" }
-                    .clip(WellShape)
-                    .background(MasterDiceColors.Brass)
-                    .pointerInput(Unit) { detectTapGestures { onDismiss() } }
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-            )
-        }
-    }
-}
-
-/** A labelled settings row with a pill switch. */
-@Composable
-private fun SettingsRow(
-    label: String,
-    tag: String,
-    checked: Boolean,
-    onToggle: (Boolean) -> Unit,
-    badge: String? = null,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            BasicText(
-                text = label,
-                style = TextStyle(
-                    color = MasterDiceColors.Ivory.copy(alpha = 0.85f),
-                    fontSize = 14.sp,
-                ),
-            )
-            if (badge != null) {
+                    .semantics { contentDescription = "Done" }
+                    .clip(RoundedCornerShape(50))
+                    .background(goldPillBrush())
+                    .border(1.5.dp, MasterDiceColors.GoldLow, RoundedCornerShape(50))
+                    .pointerInput(Unit) { detectTapGestures { onDismiss() } },
+                contentAlignment = Alignment.Center,
+            ) {
                 BasicText(
-                    text = badge,
+                    text = "DONE",
                     style = TextStyle(
-                        color = MasterDiceColors.AmberBorder.copy(alpha = 0.8f),
-                        fontSize = 8.sp,
+                        color = MasterDiceColors.InkBrown,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.5.sp,
                     ),
                 )
             }
         }
-        Spacer(Modifier.width(16.dp))
-        // Pill switch: brass track + knob when on, muted when off.
-        Box(
+    }
+}
+
+/** Recessed settings row: icon tile, gold label, segmented ON/OFF toggle. */
+@Composable
+private fun SettingsRow(
+    label: String,
+    tag: String,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+    icon: DrawScope.() -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(MasterDiceColors.FeltDark)
+            .border(1.dp, MasterDiceColors.Gold.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Canvas(Modifier.size(18.dp)) { icon() }
+        Spacer(Modifier.width(8.dp))
+        BasicText(
+            text = label,
+            modifier = Modifier.weight(1f),
+            style = TextStyle(
+                color = MasterDiceColors.GoldHi,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.sp,
+            ),
+        )
+        // Segmented ON/OFF toggle — gold segment is the active one.
+        Row(
             modifier = Modifier
-                .size(width = 44.dp, height = 24.dp)
                 .testTag(tag)
                 .semantics {
                     contentDescription = "$label, " + if (checked) "on" else "off"
                 }
                 .clip(RoundedCornerShape(50))
-                .background(
-                    if (checked) MasterDiceColors.Brass else MasterDiceColors.RowPanel,
-                )
-                .border(
-                    1.dp,
-                    if (checked) MasterDiceColors.BrassBright
-                    else MasterDiceColors.SubmittedPanelBorder,
-                    RoundedCornerShape(50),
-                )
-                .pointerInput(checked) {
-                    detectTapGestures { onToggle(!checked) }
-                }
-                .padding(3.dp),
-            contentAlignment = if (checked) Alignment.CenterEnd
-            else Alignment.CenterStart,
+                .background(MasterDiceColors.Board)
+                .border(1.dp, MasterDiceColors.Gold.copy(alpha = 0.4f), RoundedCornerShape(50)),
         ) {
-            Box(
-                modifier = Modifier
-                    .size(16.dp)
-                    .background(
-                        if (checked) MasterDiceColors.Board
-                        else MasterDiceColors.Ivory.copy(alpha = 0.4f),
-                        CircleShape,
-                    ),
-            )
+            for (on in listOf(true, false)) {
+                val active = checked == on
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(if (active) goldPillBrush() else Brush.verticalGradient(
+                            listOf(Color.Transparent, Color.Transparent),
+                        ))
+                        .pointerInput(on) {
+                            detectTapGestures { if (checked != on) onToggle(on) }
+                        }
+                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                ) {
+                    BasicText(
+                        text = if (on) "ON" else "OFF",
+                        style = TextStyle(
+                            color = if (active) MasterDiceColors.InkBrown
+                            else MasterDiceColors.Gold.copy(alpha = 0.6f),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp,
+                        ),
+                    )
+                }
+            }
         }
     }
+}
+
+/** Eight-tooth gear, as in the settings header button. */
+private fun DrawScope.drawGear(color: Color) {
+    val c = center
+    val r = size.minDimension / 2f
+    for (i in 0 until 8) {
+        val a = i * kotlin.math.PI / 4
+        drawLine(
+            color = color,
+            start = Offset(
+                (c.x + kotlin.math.cos(a) * r * 0.72f).toFloat(),
+                (c.y + kotlin.math.sin(a) * r * 0.72f).toFloat(),
+            ),
+            end = Offset(
+                (c.x + kotlin.math.cos(a) * r).toFloat(),
+                (c.y + kotlin.math.sin(a) * r).toFloat(),
+            ),
+            strokeWidth = r * 0.32f,
+            cap = StrokeCap.Round,
+        )
+    }
+    drawCircle(color = color, radius = r * 0.58f, center = c)
+    drawCircle(color = MasterDiceColors.Gold, radius = r * 0.3f, center = c)
+}
+
+/** Speaker glyph for the SOUND FX row: cone plus two sound arcs. */
+private fun DrawScope.drawSpeaker(color: Color) {
+    val w = size.width
+    val h = size.height
+    val cone = Path().apply {
+        moveTo(w * 0.12f, h * 0.38f)
+        lineTo(w * 0.34f, h * 0.38f)
+        lineTo(w * 0.58f, h * 0.16f)
+        lineTo(w * 0.58f, h * 0.84f)
+        lineTo(w * 0.34f, h * 0.62f)
+        lineTo(w * 0.12f, h * 0.62f)
+        close()
+    }
+    drawPath(cone, color)
+    drawArc(
+        color = color,
+        startAngle = -60f,
+        sweepAngle = 120f,
+        useCenter = false,
+        topLeft = Offset(w * 0.52f, h * 0.28f),
+        size = Size(w * 0.42f, h * 0.44f),
+        style = Stroke(width = w * 0.11f, cap = StrokeCap.Round),
+    )
+    drawArc(
+        color = color,
+        startAngle = -60f,
+        sweepAngle = 120f,
+        useCenter = false,
+        topLeft = Offset(w * 0.62f, h * 0.14f),
+        size = Size(w * 0.72f, h * 0.72f),
+        style = Stroke(width = w * 0.11f, cap = StrokeCap.Round),
+    )
 }
 
 @Composable
