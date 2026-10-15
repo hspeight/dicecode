@@ -195,34 +195,34 @@ fun GameScreen(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BasicText(
-                            text = "◆",
-                            style = TextStyle(
-                                color = MasterDiceColors.BrassBright.copy(alpha = 0.6f),
-                                fontSize = 10.sp,
-                            ),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        BasicText(
-                            text = "Master Dice",
-                            style = TextStyle(
-                                color = MasterDiceColors.BrassBright,
-                                fontSize = 22.sp,
-                                fontFamily = FontFamily.Serif,
-                                fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.sp,
-                            ),
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        BasicText(
-                            text = "◆",
-                            style = TextStyle(
-                                color = MasterDiceColors.BrassBright.copy(alpha = 0.6f),
-                                fontSize = 10.sp,
-                            ),
-                        )
-                    }
+//                    Row(verticalAlignment = Alignment.CenterVertically) {
+//                        BasicText(
+//                            text = "◆",
+//                            style = TextStyle(
+//                                color = MasterDiceColors.BrassBright.copy(alpha = 0.6f),
+//                                fontSize = 10.sp,
+//                            ),
+//                        )
+//                        Spacer(Modifier.width(8.dp))
+//                        BasicText(
+//                            text = "Master Dice",
+//                            style = TextStyle(
+//                                color = MasterDiceColors.BrassBright,
+//                                fontSize = 22.sp,
+//                                fontFamily = FontFamily.Serif,
+//                                fontWeight = FontWeight.SemiBold,
+//                                letterSpacing = 1.sp,
+//                            ),
+//                        )
+//                        Spacer(Modifier.width(8.dp))
+//                        BasicText(
+//                            text = "◆",
+//                            style = TextStyle(
+//                                color = MasterDiceColors.BrassBright.copy(alpha = 0.6f),
+//                                fontSize = 10.sp,
+//                            ),
+//                        )
+//                    }
                     val turn = if (state.status == GameStatus.PLAYING)
                         (state.guesses.size + 1).coerceAtMost(ROWS)
                     else state.guesses.size
