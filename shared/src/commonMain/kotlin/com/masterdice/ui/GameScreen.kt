@@ -1286,7 +1286,7 @@ private fun TrayRow(
                 slot = slot,
                 die = if (draggingAway) null else die,
                 cell = trayCell,
-                dieSize = cell,
+                dieSize = cell * 1.08f,
                 dd = dd,
                 active = state.status == GameStatus.PLAYING,
                 alpha = 1f,
