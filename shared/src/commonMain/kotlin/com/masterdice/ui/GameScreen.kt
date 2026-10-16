@@ -27,10 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.masterdice.game.Die
 import com.masterdice.game.GameIntent
@@ -48,6 +45,7 @@ import com.masterdice.resources.deal_row
 import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun GameScreen(
@@ -80,7 +78,7 @@ fun GameScreen(
     val reveal = remember { Animatable(1f) }
     LaunchedEffect(hintCell) {
         if (hintCell != null) {
-            delay(2200)
+            delay(2200.milliseconds)
             hintCell = null
         }
     }
@@ -110,7 +108,7 @@ fun GameScreen(
             .onGloballyPositioned { dd.container = it },
     ) {
         val maxBoardWidth = if (maxWidth > 480.dp) 480.dp else maxWidth
-        val gap = 6.dp
+        val gap = 24.dp
         // The board is a fixed-aspect artwork scaled from boardW; its width
         // is bound by whichever is tighter — the column width, or the height
         // budget once the header rows, deal row, and spacers are paid for.
@@ -122,9 +120,8 @@ fun GameScreen(
         // One cell = one artwork well (500px of the 2400px-wide image);
         // dice fill their wells edge to edge.
         val cell = boardW * (BOARD_WELL_PX / 2400f)
-        val dieSize = cell
         // 4th-column cell — sized to the enter key, centered on the peg track.
-        val enterSize = dieSize * 0.9f
+        val enterSize = cell * 0.9f
 
         Column(
             modifier = Modifier
@@ -168,7 +165,7 @@ fun GameScreen(
                         row = row,
                         boardW = boardW,
                         cell = cell,
-                        dieSize = dieSize,
+                        dieSize = cell,
                         enterSize = enterSize,
                         dd = dd,
                         onIntent = onIntent,
@@ -203,7 +200,7 @@ fun GameScreen(
             }
         }
 
-        DragOverlay(dd, dieSize)
+        DragOverlay(dd, cell)
 
         // Hint bubble above an empty active cell that was tapped, plus a
         // finger bouncing over the deal row.
