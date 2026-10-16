@@ -52,10 +52,10 @@ fun GameScreen(
     state: GameState,
     onIntent: (GameIntent) -> Unit,
     onNewGame: () -> Unit,
+    modifier: Modifier = Modifier,
     bestScore: Int? = null,
     newBest: Boolean = false,
     totalScore: Int = 0,
-    modifier: Modifier = Modifier,
     soundEnabled: Boolean = SoundFx.enabled,
     onToggleSound: (Boolean) -> Unit = {
         SoundFx.enabled = it
