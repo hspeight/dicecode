@@ -339,7 +339,7 @@ internal fun SettingsPanel(
     ) {
         Column(
             modifier = Modifier
-                .width(230.dp)
+                .width(320.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(
                     Brush.verticalGradient(
@@ -347,7 +347,7 @@ internal fun SettingsPanel(
                     ),
                 )
                 .border(1.5.dp, MasterDiceColors.Gold, RoundedCornerShape(16.dp))
-                .padding(12.dp)
+                .padding(18.dp)
                 // Swallow taps on the card itself so it doesn't dismiss.
                 .pointerInput(Unit) { detectTapGestures { } },
         ) {
@@ -360,7 +360,7 @@ internal fun SettingsPanel(
                 drawSpeaker(MasterDiceColors.Gold)
             }
             if (debugToolsEnabled) {
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(14.dp))
                 SettingsRow(
                     label = "MATCH TINTS",
                     tag = "toggleMatchIndicators",
@@ -372,16 +372,16 @@ internal fun SettingsPanel(
                     drawCircle(MasterDiceColors.AmberBorder, r * 0.5f, Offset(r * 1.38f, r))
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(16.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(40.dp)
+                    .height(54.dp)
                     .testTag("settingsDone")
                     .semantics { contentDescription = "Done" }
                     .clip(RoundedCornerShape(50))
                     .background(goldPillBrush())
-                    .border(1.5.dp, MasterDiceColors.GoldLow, RoundedCornerShape(50))
+                    .border(2.dp, MasterDiceColors.GoldLow, RoundedCornerShape(50))
                     .pointerInput(Unit) { detectTapGestures { onDismiss() } },
                 contentAlignment = Alignment.Center,
             ) {
@@ -389,9 +389,9 @@ internal fun SettingsPanel(
                     text = "DONE",
                     style = TextStyle(
                         color = MasterDiceColors.InkBrown,
-                        fontSize = 14.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.5.sp,
+                        letterSpacing = 2.sp,
                     ),
                 )
             }
@@ -500,20 +500,20 @@ private fun SettingsRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(MasterDiceColors.FeltDark)
-            .border(1.dp, MasterDiceColors.Gold.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .border(1.dp, MasterDiceColors.Gold.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Canvas(Modifier.size(18.dp)) { icon() }
-        Spacer(Modifier.width(8.dp))
+        Canvas(Modifier.size(24.dp)) { icon() }
+        Spacer(Modifier.width(10.dp))
         BasicText(
             text = label,
             modifier = Modifier.weight(1f),
             style = TextStyle(
                 color = MasterDiceColors.GoldHi,
-                fontSize = 11.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp,
             ),
@@ -540,14 +540,14 @@ private fun SettingsRow(
                         .pointerInput(on) {
                             detectTapGestures { if (checked != on) onToggle(on) }
                         }
-                        .padding(horizontal = 10.dp, vertical = 4.dp),
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
                 ) {
                     BasicText(
                         text = if (on) "ON" else "OFF",
                         style = TextStyle(
                             color = if (active) MasterDiceColors.InkBrown
                             else MasterDiceColors.Gold.copy(alpha = 0.6f),
-                            fontSize = 9.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.5.sp,
                         ),
