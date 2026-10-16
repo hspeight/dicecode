@@ -94,6 +94,16 @@ fun isLegalMove(state: GameState, from: Slot, to: Slot): Boolean {
     }
 }
 
+/**
+ * Index of the submitted guess identical to the filled active row, or -1
+ * when the row is incomplete or doesn't repeat an earlier guess.
+ */
+fun duplicateGuessIndex(state: GameState): Int {
+    if (state.status != GameStatus.PLAYING) return -1
+    if (state.activeCells.any { it == null }) return -1
+    return state.guesses.indexOfFirst { it.dice == state.activeCells }
+}
+
 fun evaluate(guess: List<Die>, solution: List<Die>): List<Feedback> =
     guess.mapIndexed { col, die ->
         val header = solution[col]
