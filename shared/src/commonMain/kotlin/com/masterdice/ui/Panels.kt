@@ -375,7 +375,8 @@ internal fun SettingsPanel(
             Spacer(Modifier.height(16.dp))
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxWidth(0.5f)
+                    .align(Alignment.CenterHorizontally)
                     .height(54.dp)
                     .testTag("settingsDone")
                     .semantics { contentDescription = "Done" }
