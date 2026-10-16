@@ -2,7 +2,6 @@ package com.masterdice.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,9 +50,9 @@ private fun GoldIconButton(
             .size(34.dp)
             .testTag(tag)
             .semantics { contentDescription = description }
-            .clip(CircleShape)
+            .chunkyShadow(CircleShape, tint = MasterDiceColors.GoldLow)
             .background(goldPillBrush())
-            .border(1.5.dp, MasterDiceColors.GoldLow, CircleShape)
+            .chunkySheen()
             .pointerInput(Unit) { detectTapGestures { onClick() } },
         contentAlignment = Alignment.Center,
     ) {
@@ -122,9 +121,9 @@ internal fun DebugDealButton(onClick: () -> Unit, modifier: Modifier = Modifier)
             .size(32.dp)
             .testTag("debugDeal")
             .semantics { contentDescription = "Open debug deal picker" }
-            .clip(RoundedCornerShape(50))
+            .chunkyShadow(RoundedCornerShape(50), elevation = 5.dp)
             .background(MasterDiceColors.RowPanel)
-            .border(1.dp, MasterDiceColors.Ivory.copy(alpha = 0.3f), RoundedCornerShape(50))
+            .chunkySheen()
             .pointerInput(Unit) { detectTapGestures { onClick() } },
         contentAlignment = Alignment.Center,
     ) {
@@ -153,9 +152,9 @@ internal fun UndoPill(enabled: Boolean, onClick: () -> Unit) {
             .height(34.dp)
             .testTag("undo")
             .semantics { contentDescription = "Undo last guess" }
-            .clip(RoundedCornerShape(50))
+            .chunkyShadow(RoundedCornerShape(50), tint = MasterDiceColors.GoldLow)
             .background(goldPillBrush())
-            .border(1.5.dp, MasterDiceColors.GoldLow, RoundedCornerShape(50))
+            .chunkySheen()
             .graphicsLayer { alpha = if (enabled) 1f else 0.4f }
             .pointerInput(enabled) {
                 if (enabled) detectTapGestures { onClick() }
@@ -221,13 +220,17 @@ internal fun ScorePill(score: Int) {
             .height(56.dp)
             .testTag("runningTotal")
             .semantics { contentDescription = "Score $score" }
-            .clip(RoundedCornerShape(12.dp))
+            .chunkyShadow(
+                RoundedCornerShape(12.dp),
+                elevation = 10.dp,
+                tint = MasterDiceColors.ScorePurpleDeep,
+            )
             .background(
                 Brush.verticalGradient(
                     listOf(MasterDiceColors.ScorePurple, MasterDiceColors.ScorePurpleDeep),
                 ),
             )
-            .border(2.5.dp, MasterDiceColors.BrassBright, RoundedCornerShape(12.dp)),
+            .chunkySheen(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {

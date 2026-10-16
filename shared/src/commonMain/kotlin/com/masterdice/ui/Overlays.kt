@@ -5,7 +5,6 @@ import androidx.compose.animation.core.VectorConverter
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.height
@@ -117,9 +116,9 @@ internal fun HintBubble(anchor: Offset, aboveBy: Dp, onDismiss: () -> Unit) {
                     )
                 }
             }
-            .clip(RoundedCornerShape(8.dp))
+            .chunkyShadow(RoundedCornerShape(8.dp), elevation = 4.dp)
             .background(MasterDiceColors.Board)
-            .border(1.dp, MasterDiceColors.Brass, RoundedCornerShape(8.dp))
+            .chunkySheen()
             .pointerInput(Unit) { detectTapGestures { onDismiss() } }
             .padding(horizontal = 10.dp, vertical = 6.dp),
     ) {

@@ -83,9 +83,9 @@ internal fun DebugDealPanel(
         Column(
             modifier = Modifier
                 .padding(horizontal = 24.dp)
-                .clip(WellShape)
+                .chunkyShadow(WellShape, elevation = 10.dp)
                 .background(MasterDiceColors.Board)
-                .border(1.dp, MasterDiceColors.Brass, WellShape)
+                .chunkySheen()
                 .padding(16.dp)
                 .pointerInput(Unit) { detectTapGestures { } },
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -225,11 +225,16 @@ internal fun DebugDealPanel(
                 modifier = Modifier
                     .testTag("dealNow")
                     .semantics { contentDescription = "Start game with this deal" }
-                    .clip(WellShape)
+                    .chunkyShadow(
+                        WellShape,
+                        elevation = 6.dp,
+                        tint = if (distinct) MasterDiceColors.Board else Color.Black,
+                    )
                     .background(
                         if (distinct) MasterDiceColors.Brass
                         else MasterDiceColors.RowPanel
                     )
+                    .chunkySheen()
                     .pointerInput(distinct, dice.toList()) {
                         if (distinct) {
                             detectTapGestures {
@@ -269,9 +274,9 @@ internal fun HelpPanel(
         Column(
             modifier = Modifier
                 .padding(horizontal = 32.dp)
-                .clip(WellShape)
+                .chunkyShadow(WellShape, elevation = 10.dp)
                 .background(MasterDiceColors.Board)
-                .border(1.dp, MasterDiceColors.Brass, WellShape)
+                .chunkySheen()
                 .padding(20.dp)
                 // Swallow taps on the card itself so it doesn't dismiss.
                 .pointerInput(Unit) { detectTapGestures { } },
@@ -312,8 +317,9 @@ internal fun HelpPanel(
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
                     .semantics { contentDescription = "Close rules" }
-                    .clip(WellShape)
+                    .chunkyShadow(WellShape, elevation = 6.dp, tint = MasterDiceColors.Board)
                     .background(MasterDiceColors.Brass)
+                    .chunkySheen()
                     .pointerInput(Unit) { detectTapGestures { onDismiss() } }
                     .padding(horizontal = 24.dp, vertical = 8.dp),
             )
@@ -340,13 +346,13 @@ internal fun SettingsPanel(
         Column(
             modifier = Modifier
                 .width(320.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .chunkyShadow(RoundedCornerShape(16.dp), elevation = 12.dp)
                 .background(
                     Brush.verticalGradient(
                         listOf(MasterDiceColors.FeltMid, MasterDiceColors.FeltDark),
                     ),
                 )
-                .border(1.5.dp, MasterDiceColors.Gold, RoundedCornerShape(16.dp))
+                .chunkySheen()
                 .padding(18.dp)
                 // Swallow taps on the card itself so it doesn't dismiss.
                 .pointerInput(Unit) { detectTapGestures { } },
@@ -380,9 +386,9 @@ internal fun SettingsPanel(
                     .height(54.dp)
                     .testTag("settingsDone")
                     .semantics { contentDescription = "Done" }
-                    .clip(RoundedCornerShape(50))
+                    .chunkyShadow(RoundedCornerShape(50), tint = MasterDiceColors.GoldLow)
                     .background(goldPillBrush())
-                    .border(2.dp, MasterDiceColors.GoldLow, RoundedCornerShape(50))
+                    .chunkySheen()
                     .pointerInput(Unit) { detectTapGestures { onDismiss() } },
                 contentAlignment = Alignment.Center,
             ) {
@@ -414,13 +420,13 @@ internal fun RepeatGuessDialog(guessNumber: Int, onDismiss: () -> Unit) {
         Column(
             modifier = Modifier
                 .width(230.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .chunkyShadow(RoundedCornerShape(16.dp), elevation = 12.dp)
                 .background(
                     Brush.verticalGradient(
                         listOf(MasterDiceColors.FeltMid, MasterDiceColors.FeltDark),
                     ),
                 )
-                .border(1.5.dp, MasterDiceColors.Gold, RoundedCornerShape(16.dp))
+                .chunkySheen()
                 .padding(12.dp)
                 .pointerInput(Unit) { detectTapGestures { } },
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -469,9 +475,9 @@ internal fun RepeatGuessDialog(guessNumber: Int, onDismiss: () -> Unit) {
                     .height(40.dp)
                     .testTag("repeatWarningDismiss")
                     .semantics { contentDescription = "OK" }
-                    .clip(RoundedCornerShape(50))
+                    .chunkyShadow(RoundedCornerShape(50), tint = MasterDiceColors.GoldLow)
                     .background(goldPillBrush())
-                    .border(1.5.dp, MasterDiceColors.GoldLow, RoundedCornerShape(50))
+                    .chunkySheen()
                     .pointerInput(Unit) { detectTapGestures { onDismiss() } },
                 contentAlignment = Alignment.Center,
             ) {
@@ -538,6 +544,7 @@ private fun SettingsRow(
                         .background(if (active) goldPillBrush() else Brush.verticalGradient(
                             listOf(Color.Transparent, Color.Transparent),
                         ))
+                        .chunkySheen()
                         .pointerInput(on) {
                             detectTapGestures { if (checked != on) onToggle(on) }
                         }
@@ -643,9 +650,9 @@ internal fun EndPanel(
     ) {
         Column(
             modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
+                .chunkyShadow(RoundedCornerShape(12.dp), elevation = 10.dp)
                 .background(MasterDiceColors.Board)
-                .border(1.dp, MasterDiceColors.Brass, RoundedCornerShape(12.dp))
+                .chunkySheen()
                 .padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -746,8 +753,9 @@ internal fun EndPanel(
                 modifier = Modifier
                     .testTag("newGame")
                     .semantics { contentDescription = "New game" }
-                    .clip(WellShape)
+                    .chunkyShadow(WellShape, elevation = 6.dp, tint = MasterDiceColors.Board)
                     .background(MasterDiceColors.Brass)
+                    .chunkySheen()
                     .pointerInput(Unit) { detectTapGestures { onNewGame() } }
                     .padding(horizontal = 24.dp, vertical = 10.dp),
             ) {

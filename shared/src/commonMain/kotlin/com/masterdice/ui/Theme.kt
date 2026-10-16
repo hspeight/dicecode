@@ -1,6 +1,14 @@
 package com.masterdice.ui
 
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.masterdice.game.DieColour
 
 object MasterDiceColors {
@@ -29,6 +37,51 @@ object MasterDiceColors {
     val InkBrown = Color(0xFF4A2E07)
     val ScorePurple = Color(0xFF6D28D9)
     val ScorePurpleDeep = Color(0xFF4C1D95)
+}
+
+/**
+ * Deep, colour-tinted drop shadow + clip — the raised base of the "chunky
+ * tactile" look. Replaces a hard outline border with a shadow that reads as
+ * thickness instead of an edge.
+ */
+fun Modifier.chunkyShadow(
+    shape: Shape,
+    elevation: Dp = 8.dp,
+    tint: Color = Color.Black,
+): Modifier = this
+    .shadow(
+        elevation = elevation,
+        shape = shape,
+        ambientColor = tint.copy(alpha = 0.5f),
+        spotColor = tint.copy(alpha = 0.5f),
+    )
+    .clip(shape)
+
+/**
+ * Soft top highlight + bottom shade painted over whatever this element
+ * already drew — fakes the inset bevel of a pressable/gummy surface without
+ * needing a true inset shadow. Pairs with [chunkyShadow]; apply after the
+ * element's background.
+ */
+fun Modifier.chunkySheen(): Modifier = this.drawWithContent {
+    drawContent()
+    val h = size.height
+    drawRect(
+        brush = Brush.verticalGradient(
+            0f to Color.White.copy(alpha = 0.28f),
+            1f to Color.Transparent,
+            startY = 0f,
+            endY = h * 0.45f,
+        ),
+    )
+    drawRect(
+        brush = Brush.verticalGradient(
+            0f to Color.Transparent,
+            1f to Color.Black.copy(alpha = 0.30f),
+            startY = h * 0.55f,
+            endY = h,
+        ),
+    )
 }
 
 fun colourName(colour: DieColour): String = when (colour) {
