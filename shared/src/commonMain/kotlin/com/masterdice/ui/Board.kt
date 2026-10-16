@@ -68,11 +68,11 @@ internal const val BOARD_TRACK_CX_PX = 2014f
 internal const val BOARD_ROW_TOP_PX = 98f
 internal const val BOARD_ROW_PITCH_PX = 531.8f
 
-// deal_row.png: standalone 2400x580 asset rendered below the board —
+// deal_row.png: standalone 2400x700 asset rendered below the board —
 // a brass-bordered strip holding four dice wells evenly spaced across
 // its width (80px margins and gaps between the 500px dice).
-internal const val DEAL_ASPECT = 580f / 2400f
-internal const val DEAL_DIE_TOP_PX = 40f
+internal const val DEAL_ASPECT = 700f / 2400f
+internal const val DEAL_DIE_TOP_PX = 100f
 internal val BOARD_DICE_COLS_PX = floatArrayOf(80f, 660f, 1240f, 1820f)
 
 @Composable
@@ -295,7 +295,14 @@ private fun CellWell(
                 else Modifier.testTag("tray-${(slot as Slot.Tray).index}")
             )
             .semantics { contentDescription = description }
-            .onGloballyPositioned { dd.register(slot, it) }
+            .onGloballyPositioned {
+                // Grow the drop target to the die's footprint when the cell
+                // is deliberately undersized (tray cells sit under full-size
+                // dice); grid cells keep exact bounds (ratio = 1 → no inflate).
+                val inflate = it.size.width / 2f *
+                    (dieSize / cell - 1f).coerceAtLeast(0f)
+                dd.register(slot, it, inflate)
+            }
             .pointerInput(slot) {
                 try {
                     detectDragGestures(

@@ -34,9 +34,16 @@ class DragDropState {
     var session by mutableStateOf<DragSession?>(null)
         private set
 
-    fun register(slot: Slot, coords: LayoutCoordinates) {
+    /**
+     * Registers [slot]'s bounds. [inflatePx] grows the rect outward — tray
+     * cells sit undersized beneath full-size dice, so drops should land on
+     * the die's footprint, not just the small cell box.
+     */
+    fun register(slot: Slot, coords: LayoutCoordinates, inflatePx: Float = 0f) {
         val c = container
-        bounds[slot] = c?.localBoundingBoxOf(coords) ?: coords.boundsInRoot()
+        var rect = c?.localBoundingBoxOf(coords) ?: coords.boundsInRoot()
+        if (inflatePx > 0f) rect = rect.inflate(inflatePx)
+        bounds[slot] = rect
     }
 
     fun slotAt(point: Offset): Slot? =
