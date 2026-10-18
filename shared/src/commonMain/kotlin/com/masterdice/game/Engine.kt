@@ -25,27 +25,36 @@ sealed interface GameIntent {
     data object UndoGuess : GameIntent
 }
 
-fun newGame(seed: Long, levelIndex: Int = 0): GameState {
+fun newGame(
+    seed: Long,
+    levelIndex: Int = 0,
+    usedPuzzleIds: List<Int> = emptyList(),
+): GameState {
     val level = LEVELS[levelIndex]
     val random = Random(seed)
+    val selected = if (levelIndex == 0) PuzzleLibrary.draw(seed, usedPuzzleIds) else null
 
     fun randomDie(): Die = Die(
         colour = DieColour.entries[random.nextInt(DieColour.entries.size)],
         value = random.nextInt(1, 7),
     )
 
-    val solution = mutableListOf<Die>()
-    while (solution.size < level.cols) {
-        val die = randomDie()
-        if (die !in solution) solution += die
+    val solution = selected?.puzzle?.solution ?: run {
+        val dice = mutableListOf<Die>()
+        while (dice.size < level.cols) {
+            val die = randomDie()
+            if (die !in dice) dice += die
+        }
+        dice
     }
-
-    val decoys = mutableListOf<Die>()
-    while (decoys.size < level.decoys) {
-        val die = randomDie()
-        if (die !in solution && die !in decoys) decoys += die
+    val decoys = selected?.let { listOf(it.puzzle.decoy) } ?: run {
+        val dice = mutableListOf<Die>()
+        while (dice.size < level.decoys) {
+            val die = randomDie()
+            if (die !in solution && die !in dice) dice += die
+        }
+        dice
     }
-
     val deal = (solution + decoys).shuffled(random)
 
     return GameState(
@@ -57,6 +66,8 @@ fun newGame(seed: Long, levelIndex: Int = 0): GameState {
         status = GameStatus.PLAYING,
         seed = seed,
         levelIndex = levelIndex,
+        usedPuzzleIds = selected?.usedPuzzleIds ?: usedPuzzleIds,
+        puzzleId = selected?.puzzle?.id,
     )
 }
 
@@ -142,11 +153,11 @@ fun evaluate(guess: List<Die>, solution: List<Die>): List<Feedback> =
     }
 
 fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
-    is GameIntent.NewGame -> newGame(intent.seed, intent.levelIndex)
+    is GameIntent.NewGame -> newGame(intent.seed, intent.levelIndex, state.usedPuzzleIds)
 
     is GameIntent.NewGameWithDeal ->
         newGame(intent.solution, intent.decoys, intent.levelIndex)
-            .copy(scored = false)
+            .copy(scored = false, usedPuzzleIds = state.usedPuzzleIds)
 
     GameIntent.UndoGuess -> {
         val undone = undoGuess(state)

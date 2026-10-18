@@ -46,9 +46,14 @@ A new game produces an empty 10 x 4 grid, a hidden 3-die solution and a 4-die tr
 
 Randomness comes from an injectable seeded generator so tests and a future daily-puzzle mode can reproduce a game.
 
+Level 1 uses a library of 1,000 prevalidated puzzles. Each puzzle has exactly four dealt dice: three ordered secret dice and one decoy. No colour/value pair repeats within a deal. The selected puzzle id is saved with game state, and puzzles are drawn at random without replacement until the full library has been used; then a new cycle begins.
+
+Every library puzzle is solvable in at most four guesses, so it is within the 10-guess limit. For any four-die deal ordered d0–d3, the first three probe rows can be (d0,d1,d2), (d1,d2,d3), and (d2,d3,d0). Each row uses three distinct dice. In each secret column, a green response identifies the exact die; if none of the three probes is green, the only untested die is the answer. The three inferred dice form the exact ordered secret, which solves the puzzle on guess four. This gives a worst-case guarantee for every possible ordered secret in the deal.
+
+
 ## Gameplay
 
-The player builds each guess by dragging 3 of the 4 tray dice into columns 1 to 3 of the active row, then taps the enter cell.
+The player builds each guess by dragging 3 of the 4 tray dice into columns 1 to 3 of the active row, then taps the enter cell. A guess uses each selected die once, and repeating an earlier ordered guess is allowed.
 
 **Allowed moves** (only these three; any other drop snaps the die back to where it came from):
 
