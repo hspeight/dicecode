@@ -356,7 +356,7 @@ internal fun HelpPanel(
                 RuleLine("■", MasterDiceColors.AmberBorder, "Correct colour OR value")
                 //RuleLine("□", MasterDiceColors.Ivory.copy(alpha = 0.4f), "Neither matches")
             } else {
-                //RuleText("Match indicators are off — each submitted row shows a peg for every column:")
+                RuleText("Pegs show how many positions match, without revealing which ones. Their order does not match the dice.")
                 Spacer(Modifier.height(8.dp))
                 RuleLine("●", MasterDiceColors.GreenBorder, "Correct colour AND value")
                 RuleLine("●", MasterDiceColors.AmberBorder, "Correct colour OR value")

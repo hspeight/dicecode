@@ -225,7 +225,8 @@ class GameScreenTest {
         waitForIdle()
 
         // First fill is not a duplicate — no warning before submitting.
-        val dice = listOf(state.tray[0]!!, state.tray[1]!!, state.tray[2]!!)
+        val decoy = state.deal.first { it !in state.solution }
+        val dice = listOf(decoy) + state.solution.take(2)
         playDice({ state }, row = 0, dice = dice)
         assertFailsWith<AssertionError> {
             onNodeWithTag("repeatWarning").fetchSemanticsNode()
@@ -249,32 +250,34 @@ class GameScreenTest {
     }
 
     @Test
-    fun debugLevelSelectorStartsLevelOneGame() = runComposeUiTest {
-        var state by mutableStateOf(newGame(7L))
-        setContent {
-            GameScreen(
-                state = state,
-                onIntent = { intent -> state = reduce(state, intent) },
-                onNewGame = {},
-            )
+    fun debugLevelSelectorStartsLevelOneGame() = withDesktopDebugTools(true) {
+        runComposeUiTest {
+            var state by mutableStateOf(newGame(7L))
+            setContent {
+                GameScreen(
+                    state = state,
+                    onIntent = { intent -> state = reduce(state, intent) },
+                    onNewGame = {},
+                )
+            }
+            waitForIdle()
+
+            onNodeWithTag("debugDeal").performClick()
+            waitForIdle()
+            onNodeWithTag("levelSelect-1").performClick()
+            waitForIdle()
+
+            assertEquals(1, state.levelIndex)
+            assertEquals(5, state.tray.size)
+            assertEquals(4, state.activeCells.size)
+            onNodeWithTag("tray-4").fetchSemanticsNode()
+            onNodeWithTag("cell-0-3").fetchSemanticsNode()
+
+            // Back to level 0.
+            onNodeWithTag("levelSelect-0").performClick()
+            waitForIdle()
+            assertEquals(0, state.levelIndex)
+            assertEquals(4, state.tray.size)
         }
-        waitForIdle()
-
-        onNodeWithTag("debugDeal").performClick()
-        waitForIdle()
-        onNodeWithTag("levelSelect-1").performClick()
-        waitForIdle()
-
-        assertEquals(1, state.levelIndex)
-        assertEquals(5, state.tray.size)
-        assertEquals(4, state.activeCells.size)
-        onNodeWithTag("tray-4").fetchSemanticsNode()
-        onNodeWithTag("cell-0-3").fetchSemanticsNode()
-
-        // Back to level 0.
-        onNodeWithTag("levelSelect-0").performClick()
-        waitForIdle()
-        assertEquals(0, state.levelIndex)
-        assertEquals(4, state.tray.size)
     }
 }

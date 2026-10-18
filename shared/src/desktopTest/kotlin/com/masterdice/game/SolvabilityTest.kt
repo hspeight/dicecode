@@ -425,6 +425,7 @@ class SolvabilityTest {
             sb.appendLine("class$i $w  ${cells.toList()}")
         }
         sb.appendLine("MAX worst-case guesses: $max")
+        java.io.File(root, "tmp").mkdirs()
         java.io.File(root, "tmp/count_bound.txt").writeText(sb.toString())
         assertTrue(max <= ROWS)
     }

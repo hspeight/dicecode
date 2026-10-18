@@ -146,7 +146,10 @@ internal fun BoxScope.GuessRow(
             highlighted = highlighted,
             feedback = if (showFeedback) feedback else null,
             showMatchIndicator = showMatchIndicator,
-            description = cellDescription(state, row, col, die, feedback),
+            description = cellDescription(
+                state, row, col, die,
+                if (showMatchIndicator && showFeedback) feedback else null,
+            ),
             draggable = isActive && die != null && !draggingAway,
             state = state,
             onIntent = onIntent,
@@ -276,8 +279,7 @@ private fun CellWell(
     val currentOnTap by rememberUpdatedState(onTap)
     val currentOnEmptyTap by rememberUpdatedState(onEmptyTap)
 
-    // The debug settings toggle hides the border/glow match indicators only;
-    // `feedback` still drives semantics via `description`.
+    // Positional feedback is exposed visually and through semantics only in debug mode.
     val shownFeedback = if (showMatchIndicator) feedback else null
 
     // Tray cells draw their wells to match the die corner radius; grid cells

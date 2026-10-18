@@ -6,7 +6,7 @@ const val ROWS = 10
 const val GUESS_SIZE = 3
 const val TRAY_SIZE = 4
 
-const val SAVE_VERSION = 4
+const val SAVE_VERSION = 5
 
 @Serializable
 enum class DieColour { RED, BLUE, GREEN, ORANGE, PINK, TEAL }
@@ -48,6 +48,10 @@ data class GameState(
     val scored: Boolean = true,
     /** Index into [LEVELS]; levels ship one at a time. */
     val levelIndex: Int = 0,
+    /** Puzzle-library selection state; retained across games and app restarts. */
+    val usedPuzzleIds: List<Int> = emptyList(),
+    /** Selected prevalidated puzzle id for this game, or null for other levels/debug deals. */
+    val puzzleId: Int? = null,
 ) {
     val level: Level get() = LEVELS[levelIndex.coerceIn(0, LEVELS.lastIndex)]
 

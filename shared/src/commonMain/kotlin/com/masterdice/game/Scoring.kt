@@ -6,8 +6,8 @@ import kotlin.math.roundToInt
  * A difficulty level: `cols` hidden dice, `traySize` dealt dice
  * (`traySize - cols` decoys). `par` is the skill target (~90th percentile of a
  * consistency player); `bound` is the guaranteed-solve limit shown to the
- * player as "always solvable in N" — null while unproven (universal bound is
- * `traySize` guesses).
+ * player as "always solvable in N" — null while unproven. Level 1 uses
+ * the exact count-only bound for its validated bank.
  */
 data class Level(
     val index: Int,
@@ -27,7 +27,7 @@ data class Level(
 }
 
 val LEVELS = listOf(
-    Level(0, cols = 3, traySize = 4, par = 4, bound = 4, base = 100),
+    Level(0, cols = 3, traySize = 4, par = 4, bound = 5, base = 100),
     Level(1, cols = 4, traySize = 5, par = 3, bound = 5, base = 150),
     Level(2, cols = 3, traySize = 5, par = 4, bound = 5, base = 200),
     Level(3, cols = 3, traySize = 6, par = 4, bound = 6, base = 250),

@@ -27,8 +27,11 @@ game (Android + iOS + Desktop JVM). Spec: `docs/PRD/Master Dice PRD.md`.
 # Android debug APK
 ./gradlew :androidApp:assembleDebug
 
-# Run the desktop app
+# Run the desktop app (normal count-only gameplay)
 ./gradlew :desktopApp:run
+
+# Desktop debug tools: add -Dmasterdice.debug=true to the application JVM.
+# Positional feedback remains off until enabled in Settings.
 
 # iOS Kotlin/Native klibs (compilation only; Xcode packaging needs macOS)
 ./gradlew :shared:compileKotlinIosArm64 :shared:compileKotlinIosSimulatorArm64
