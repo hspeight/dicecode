@@ -225,7 +225,8 @@ class GameScreenTest {
         waitForIdle()
 
         // First fill is not a duplicate — no warning before submitting.
-        val dice = listOf(state.tray[0]!!, state.tray[1]!!, state.tray[2]!!)
+        val decoy = state.deal.first { it !in state.solution }
+        val dice = listOf(decoy) + state.solution.take(2)
         playDice({ state }, row = 0, dice = dice)
         assertFailsWith<AssertionError> {
             onNodeWithTag("repeatWarning").fetchSemanticsNode()
