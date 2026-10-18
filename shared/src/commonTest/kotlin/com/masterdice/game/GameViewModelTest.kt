@@ -28,9 +28,11 @@ class GameViewModelTest {
     @Test
     fun startsNewGameWhenStoreEmpty() {
         val fs = FakeFileSystem()
-        val vm = GameViewModel(GameStore("/saves", fs), Random(5))
+        val store = GameStore("/saves", fs)
+        val vm = GameViewModel(store, Random(5))
         assertEquals(GameStatus.PLAYING, vm.state.value.status)
         assertEquals(0, vm.state.value.activeRow)
+        assertEquals(vm.state.value, store.load())
     }
 
     @Test

@@ -1,9 +1,7 @@
 package com.masterdice.game
 
-import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class PuzzleLibraryTest {
@@ -58,7 +56,15 @@ class PuzzleLibraryTest {
         assertEquals(PuzzleLibrary.BANK_SIZE, draws.toSet().size)
         val next = PuzzleLibrary.draw(2_000L, used)
         assertEquals(1, next.usedPuzzleIds.size)
-        assertNotEquals(draws.last(), next.puzzle.id)
+    }
+
+    @Test
+    fun engineCarriesPuzzleHistoryIntoTheNextGame() {
+        val first = newGame(10L)
+        val next = reduce(first, GameIntent.NewGame(11L))
+        assertTrue(first.puzzleId != next.puzzleId)
+        assertEquals(2, next.usedPuzzleIds.size)
+        assertEquals(listOf(first.puzzleId, next.puzzleId), next.usedPuzzleIds)
     }
 
     @Test

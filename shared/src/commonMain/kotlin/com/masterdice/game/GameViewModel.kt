@@ -13,7 +13,8 @@ class GameViewModel(
     private val random: Random = Random.Default,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(store?.load() ?: newGame(random.nextLong()))
+    private val initialState = store?.load() ?: newGame(random.nextLong()).also { store?.save(it) }
+    private val _state = MutableStateFlow(initialState)
     val state: StateFlow<GameState> = _state.asStateFlow()
 
     private val _stats = MutableStateFlow(store?.loadStats() ?: GameStore.GameStats())

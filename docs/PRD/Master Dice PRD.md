@@ -39,14 +39,13 @@ The twist on classic Mastermind: the player is handed the exact dice that make u
 A new game produces an empty 10 x 4 grid, a hidden 3-die solution and a 4-die tray.
 
 1. Create the grid: 10 rows by 4 columns, all cells empty. Row 1 (top) is the active row.
-2. Generate the solution: 3 dice, each with a random colour and random value. Colours or values may repeat across dice, but no two dice are identical (same colour and same value).
-3. Generate the decoy: 1 random die that is not identical to any solution die.
-4. Build the deal: the 3 solution dice plus the decoy, shuffled into random tray slots so position gives nothing away.
-5. Show the tray; keep the solution hidden.
+2. For Level 1, select a puzzle from the validated bank below. Other levels generate a solution and decoys using that level's configured column and tray counts; colours or values may repeat, but no two dealt dice are identical.
+3. Shuffle the deal into random tray slots so position gives nothing away.
+4. Show the tray; keep the solution hidden.
 
 Randomness comes from an injectable seeded generator so tests and a future daily-puzzle mode can reproduce a game.
 
-Level 1 uses a library of 1,000 prevalidated puzzles. Each puzzle has exactly four dealt dice: three ordered secret dice and one decoy. No colour/value pair repeats within a deal. The selected puzzle id is saved with game state, and puzzles are drawn at random without replacement until the full library has been used; then a new cycle begins.
+Level 1 uses a library of 1,000 prevalidated puzzles. Each puzzle has exactly four dealt dice: three ordered secret dice and one decoy, with all four dice fixed throughout the game. No colour/value pair repeats within a deal. The selected puzzle id is saved with game state, and puzzles are drawn at random without replacement until the full library has been used; then a new cycle begins.
 
 Every library puzzle is solvable in at most four guesses, so it is within the 10-guess limit. For any four-die deal ordered d0–d3, the first three probe rows can be (d0,d1,d2), (d1,d2,d3), and (d2,d3,d0). Each row uses three distinct dice. In each secret column, a green response identifies the exact die; if none of the three probes is green, the only untested die is the answer. The three inferred dice form the exact ordered secret, which solves the puzzle on guess four. This gives a worst-case guarantee for every possible ordered secret in the deal.
 
