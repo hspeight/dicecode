@@ -250,32 +250,34 @@ class GameScreenTest {
     }
 
     @Test
-    fun debugLevelSelectorStartsLevelOneGame() = runComposeUiTest {
-        var state by mutableStateOf(newGame(7L))
-        setContent {
-            GameScreen(
-                state = state,
-                onIntent = { intent -> state = reduce(state, intent) },
-                onNewGame = {},
-            )
+    fun debugLevelSelectorStartsLevelOneGame() = withDesktopDebugTools(true) {
+        runComposeUiTest {
+            var state by mutableStateOf(newGame(7L))
+            setContent {
+                GameScreen(
+                    state = state,
+                    onIntent = { intent -> state = reduce(state, intent) },
+                    onNewGame = {},
+                )
+            }
+            waitForIdle()
+
+            onNodeWithTag("debugDeal").performClick()
+            waitForIdle()
+            onNodeWithTag("levelSelect-1").performClick()
+            waitForIdle()
+
+            assertEquals(1, state.levelIndex)
+            assertEquals(5, state.tray.size)
+            assertEquals(4, state.activeCells.size)
+            onNodeWithTag("tray-4").fetchSemanticsNode()
+            onNodeWithTag("cell-0-3").fetchSemanticsNode()
+
+            // Back to level 0.
+            onNodeWithTag("levelSelect-0").performClick()
+            waitForIdle()
+            assertEquals(0, state.levelIndex)
+            assertEquals(4, state.tray.size)
         }
-        waitForIdle()
-
-        onNodeWithTag("debugDeal").performClick()
-        waitForIdle()
-        onNodeWithTag("levelSelect-1").performClick()
-        waitForIdle()
-
-        assertEquals(1, state.levelIndex)
-        assertEquals(5, state.tray.size)
-        assertEquals(4, state.activeCells.size)
-        onNodeWithTag("tray-4").fetchSemanticsNode()
-        onNodeWithTag("cell-0-3").fetchSemanticsNode()
-
-        // Back to level 0.
-        onNodeWithTag("levelSelect-0").performClick()
-        waitForIdle()
-        assertEquals(0, state.levelIndex)
-        assertEquals(4, state.tray.size)
     }
 }

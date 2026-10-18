@@ -11,9 +11,9 @@ import kotlin.math.sin
 actual fun defaultStorageDir(): String =
     File(System.getProperty("user.home"), ".masterdice").absolutePath
 
-// Desktop has no release variant; on by default, -Dmasterdice.debug=false to hide.
+// Desktop debug tools require an explicit development launch flag.
 actual val debugToolsEnabled: Boolean
-    get() = System.getProperty("masterdice.debug")?.toBooleanStrictOrNull() ?: true
+    get() = System.getProperty("masterdice.debug")?.toBooleanStrictOrNull() ?: false
 
 private const val RATE = 44100f
 private val tapPcm: ByteArray by lazy {

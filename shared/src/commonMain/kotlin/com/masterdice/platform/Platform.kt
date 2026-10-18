@@ -3,7 +3,7 @@ package com.masterdice.platform
 /** Directory where the in-progress game is persisted. */
 expect fun defaultStorageDir(): String
 
-/** True only in debug builds — gates the fixed-deal dev tools. */
+/** True in debug builds (or explicitly opted-in desktop development launches). */
 expect val debugToolsEnabled: Boolean
 
 /** Play a short tap sound. Must never throw — audio failures are silent. */

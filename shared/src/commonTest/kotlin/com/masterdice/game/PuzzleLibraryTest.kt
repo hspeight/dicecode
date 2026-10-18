@@ -23,7 +23,7 @@ class PuzzleLibraryTest {
     }
 
     @Test
-    fun cyclicProbeStrategySolvesEverySecretOrderInEveryPuzzle() {
+    fun debugPositionalFeedbackCyclicStrategySolvesEverySecretOrderInEveryPuzzle() {
         for (puzzle in PuzzleLibrary.puzzles) {
             val deal = puzzle.solution + puzzle.decoy
             val probes = (0 until 3).map { turn ->

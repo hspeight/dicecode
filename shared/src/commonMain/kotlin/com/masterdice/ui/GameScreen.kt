@@ -177,7 +177,7 @@ fun GameScreen(
                         dd = dd,
                         onIntent = onIntent,
                         feedbackShown = { col -> feedbackShown(row, col) },
-                        showMatchIndicator = showMatchIndicators,
+                        showMatchIndicator = debugToolsEnabled && showMatchIndicators,
                         onEmptyTap = { slot -> hintCell = slot },
                     )
                 }
@@ -227,7 +227,7 @@ fun GameScreen(
 
         if (showHelp) {
             HelpPanel(
-                showMatchIndicators = showMatchIndicators,
+                showMatchIndicators = debugToolsEnabled && showMatchIndicators,
                 level = state.level,
                 onDismiss = { showHelp = false },
             )
@@ -237,8 +237,8 @@ fun GameScreen(
             SettingsPanel(
                 soundEnabled = soundEnabled,
                 onToggleSound = onToggleSound,
-                showMatchIndicators = showMatchIndicators,
-                onToggle = { showMatchIndicators = it },
+                showMatchIndicators = debugToolsEnabled && showMatchIndicators,
+                onToggle = { showMatchIndicators = debugToolsEnabled && it },
                 onDismiss = { showSettings = false },
             )
         }

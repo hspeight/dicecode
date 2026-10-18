@@ -6,11 +6,11 @@ Oct 9, 2026 · @H
 
 Master Dice is a single-player Mastermind-style puzzle where the player deduces a hidden sequence of 3 dice, each defined by a colour and a face value, in at most 10 guesses. It ships as one Kotlin Multiplatform codebase with a Compose Multiplatform UI on Android, iOS and desktop.
 
-The twist on classic Mastermind: the player is handed the exact dice that make up the solution, plus one decoy. The puzzle is choosing which 3 of the 4 dice belong and in what order, using per-cell colour feedback.
+The twist on classic Mastermind: the player is handed the exact dice that make up the solution, plus one decoy. The puzzle is choosing which 3 of the 4 dice belong and in what order, using unordered feedback counts.
 
 **Goals**
 
-- A complete, playable v1: deal, guess by drag and drop, per-cell feedback, win and loss.
+- A complete, playable v1: deal, guess by drag and drop, count-only feedback, win and loss.
 - Shared game logic in `commonMain` with full unit-test coverage, and one shared Compose UI.
 - Touch-first drag and drop that also works with a mouse on desktop.
 
@@ -47,7 +47,9 @@ Randomness comes from an injectable seeded generator so tests and a future daily
 
 Level 1 uses a library of 1,000 prevalidated puzzles. Each puzzle has exactly four dealt dice: three ordered secret dice and one decoy, with all four dice fixed throughout the game. No colour/value pair repeats within a deal. The selected puzzle id is saved with game state, and puzzles are drawn at random without replacement until the full library has been used; then a new cycle begins.
 
-Every library puzzle is solvable in at most four guesses, so it is within the 10-guess limit. For any four-die deal ordered d0–d3, the first three probe rows can be (d0,d1,d2), (d1,d2,d3), and (d2,d3,d0). Each row uses three distinct dice. In each secret column, a green response identifies the exact die; if none of the three probes is green, the only untested die is the answer. The three inferred dice form the exact ordered secret, which solves the puzzle on guess four. This gives a worst-case guarantee for every possible ordered secret in the deal.
+Every library puzzle is solvable in at most five guesses with count-only feedback, within the 10-guess limit. Exact adaptive minimax over all 24 possible ordered secrets and all 24 legal guesses gives worst-case optima of three guesses for 390 deals, four for 509, and five for 101, including the final winning submission. The normal test suite checks every bank entry, reusing results only for identical labeled similarity graphs.
+
+Per-position feedback is a debug-only aid, off by default. Android and iOS expose it only in debug builds; desktop development launches must explicitly set `-Dmasterdice.debug=true`. With that aid, a cyclic three-probe strategy followed by the inferred secret guarantees a win within four guesses. This positional proof does not apply to normal count-only play.
 
 
 ## Gameplay
@@ -72,17 +74,17 @@ The player builds each guess by dragging 3 of the 4 tray dice into columns 1 to 
 
 ## Validation, win and loss
 
-Each submitted cell is compared only with its own column header, and its border shows the result.
+Each submitted cell is compared only with its own column header. Normal play shows only the total numbers of green, amber and neutral results as sorted pegs. Peg order does not identify the matching positions. Screen-reader descriptions expose the same counts, without revealing per-position results. Only the optional debug aid displays per-cell borders and positional descriptions.
 
-| Cell die vs column header | Border |
+| Cell die vs column header | Feedback category |
 | --- | --- |
 | Colour AND value match | Green |
 | Colour OR value matches (exactly one) | Amber |
-| Neither matches | Neutral (no highlight) |
+| Neither matches | Neutral |
 
 Unlike classic Mastermind there is no "right die, wrong place" signal: amber means a partial match with that column only.
 
-**Worked example.** Solution: Red 4, Blue 2, Green 6.
+**Worked example (internal per-position evaluation).** Solution: Red 4, Blue 2, Green 6. Normal play displays only the resulting counts, not the column associations.
 
 | Guess | Col 1 | Col 2 | Col 3 |
 | --- | --- | --- | --- |
@@ -101,12 +103,12 @@ One portrait screen: hidden headers on top, the 10-row grid in the middle, the t
 
 &#91;embedded content: main screen · portrait layout, mid-game\]
 
-In this example the solution is the first, second and third dice of the active row; row 2 shows a green, an amber (value match only) and a green.
+In the debug illustration, row 2 shows green, amber (value match only), and green borders. Normal play shows two green pegs and one amber peg without associating them with columns.
 
 - **Dice** show colour plus pips, never colour alone.
 - **Dragging** lifts the die with a shadow and scale; legal drop targets highlight while dragging; illegal drops animate back.
 - **Enter cell** is greyed out until the row is full, then styled as a button.
-- **Submit** reveals feedback borders cell by cell with a short stagger.
+- **Submit** shows sorted feedback pegs; positional feedback borders are available only through the debug aid.
 - **End of game** shows a win or loss panel over the grid, reveals the headers, and offers New game.
 - **Landscape and desktop** keep the same layout centred, sized so all 10 rows fit without scrolling.
 
@@ -135,7 +137,7 @@ v1 is done when a player can finish a full game on all three targets and every c
 - [ ] A new game always has a 4-die tray containing the 3 solution dice plus one non-identical decoy.
 - [ ] Only the three allowed moves change state; every other drop leaves state unchanged.
 - [ ] The enter cell is enabled only when columns 1 to 3 of the active row are filled.
-- [ ] Feedback per cell is green, amber or neutral exactly as defined, checked against the column header only.
+- [ ] Internal feedback per cell is green, amber or neutral exactly as defined, checked against its own column header only. Normal visual and screen-reader feedback reveals counts only; positional feedback is debug-only.
 - [ ] Three greens ends the game as a win; a non-winning 10th row ends it as a loss with the solution revealed.
 - [ ] After a non-final submit, the tray refills and the next row becomes active.
 - [ ] An in-progress game survives closing and reopening the app.
@@ -146,7 +148,7 @@ v1 is done when a player can finish a full game on all three targets and every c
 1. Domain and rules engine in `shared`, with tests.
 2. Static Compose layout of grid and tray on all targets.
 3. Drag and drop with move validation.
-4. Submit, feedback, win and loss states.
+4. Submit, count-only feedback, win and loss states.
 5. Persistence, accessibility pass, polish and animations.
 
 ## Assumptions and open questions
