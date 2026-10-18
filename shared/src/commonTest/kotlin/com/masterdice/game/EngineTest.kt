@@ -261,6 +261,37 @@ class EngineTest {
         assertEquals(GameStatus.PLAYING, state.status)
     }
 
+    @Test
+    fun levelOneGameHasFourColumnsAndFiveDice() {
+        for (seed in 0L until 50L) {
+            val state = newGame(seed, levelIndex = 1)
+
+            assertEquals(1, state.levelIndex, "seed $seed")
+            assertEquals(4, state.solution.size, "seed $seed")
+            assertEquals(4, state.solution.distinct().size, "seed $seed")
+            assertEquals(5, state.deal.size, "seed $seed")
+            assertEquals(5, state.deal.toSet().size, "seed $seed")
+            assertEquals(state.deal, state.tray, "seed $seed")
+            assertEquals(List(4) { null }, state.activeCells, "seed $seed")
+
+            val decoys = state.deal.filter { it !in state.solution }
+            assertEquals(1, decoys.size, "seed $seed")
+        }
+    }
+
+    @Test
+    fun levelOneFixedDealUsesExactDice() {
+        val solution = listOf(
+            d(DieColour.RED, 1), d(DieColour.BLUE, 2),
+            d(DieColour.GREEN, 3), d(DieColour.ORANGE, 4),
+        )
+        val decoys = listOf(d(DieColour.PINK, 5))
+        val state = newGame(solution, decoys, 1)
+        assertEquals(solution, state.solution)
+        assertEquals(solution + decoys, state.deal)
+        assertEquals(1, state.levelIndex)
+    }
+
     // ---------- scored flag ----------
 
     @Test

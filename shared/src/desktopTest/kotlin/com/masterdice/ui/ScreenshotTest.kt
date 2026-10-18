@@ -147,6 +147,23 @@ class ScreenshotTest {
     }
 
     @Test
+    fun captureLevelOne() = runComposeUiTest {
+        var s = newGame(7L, levelIndex = 1)
+        // Row 0: a losing guess (decoy first); row 1: two dice in progress.
+        val decoy = s.deal.first { it !in s.solution }
+        val others = s.deal.filter { it != decoy }
+        s = place(s, 0, listOf(decoy, others[0], others[1], others[2]))
+        s = reduce(s, GameIntent.Submit)
+        s = place(s, 1, listOf(s.solution[0], s.solution[1]))
+        var state by mutableStateOf(s)
+        setContent {
+            GameScreen(state = state, onIntent = { state = reduce(state, it) }, onNewGame = {})
+        }
+        waitForIdle()
+        ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", File(tmpDir(), "level1.png"))
+    }
+
+    @Test
     fun captureHelp() = runComposeUiTest {
         var s by mutableStateOf(midGameState())
         setContent {

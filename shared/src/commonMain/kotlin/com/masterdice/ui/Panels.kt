@@ -50,27 +50,32 @@ import com.masterdice.game.Die
 import com.masterdice.game.DieColour
 import com.masterdice.game.GameState
 import com.masterdice.game.GameStatus
-import com.masterdice.game.GUESS_SIZE
 import com.masterdice.game.LEVELS
+import com.masterdice.game.Level
 import com.masterdice.game.ROWS
-import com.masterdice.game.TRAY_SIZE
 import com.masterdice.game.gameScore
 import com.masterdice.platform.debugToolsEnabled
 
 @Composable
 internal fun DebugDealPanel(
-    onDeal: (solution: List<Die>, decoy: Die) -> Unit,
+    levelIndex: Int,
+    onLevelSelect: (Int) -> Unit,
+    onDeal: (solution: List<Die>, decoys: List<Die>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val labels = listOf("SOL 1", "SOL 2", "SOL 3", "DECOY")
-    val dice = remember {
+    val level = LEVELS[levelIndex]
+    val labels = (0 until level.traySize).map {
+        if (it < level.cols) "SOL ${it + 1}" else "DECOY"
+    }
+    val dice = remember(levelIndex) {
         mutableStateListOf(
-            Die(DieColour.RED, 1), Die(DieColour.BLUE, 2),
-            Die(DieColour.GREEN, 3), Die(DieColour.ORANGE, 4),
+            *(0 until level.traySize)
+                .map { Die(DieColour.entries[it % DieColour.entries.size], it + 1) }
+                .toTypedArray(),
         )
     }
-    var selected by remember { mutableIntStateOf(0) }
-    val distinct = dice.distinct().size == TRAY_SIZE
+    var selected by remember(levelIndex) { mutableIntStateOf(0) }
+    val distinct = dice.distinct().size == level.traySize
 
     Box(
         modifier = Modifier
@@ -108,6 +113,55 @@ internal fun DebugDealPanel(
                     letterSpacing = 1.5.sp,
                 ),
             )
+            Spacer(Modifier.height(10.dp))
+            // Level switcher — starts a fresh random game on the chosen level.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BasicText(
+                    text = "LEVEL",
+                    style = TextStyle(
+                        color = MasterDiceColors.Gold,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp,
+                    ),
+                )
+                LEVELS.take(2).forEach { lvl ->
+                    val active = lvl.index == levelIndex
+                    Box(
+                        modifier = Modifier
+                            .testTag("levelSelect-${lvl.index}")
+                            .semantics { contentDescription = "Level ${lvl.index + 1}" }
+                            .clip(WellShape)
+                            .background(
+                                if (active) goldPillBrush()
+                                else Brush.verticalGradient(
+                                    listOf(
+                                        MasterDiceColors.RowPanel,
+                                        MasterDiceColors.SubmittedPanel,
+                                    ),
+                                ),
+                            )
+                            .pointerInput(lvl.index) {
+                                detectTapGestures { onLevelSelect(lvl.index) }
+                            }
+                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        BasicText(
+                            text = "${lvl.index + 1}",
+                            style = TextStyle(
+                                color = if (active) MasterDiceColors.InkBrown
+                                else MasterDiceColors.Ivory,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
+                        )
+                    }
+                }
+            }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 dice.forEachIndexed { index, die ->
@@ -212,7 +266,7 @@ internal fun DebugDealPanel(
             }
             Spacer(Modifier.height(6.dp))
             BasicText(
-                text = if (distinct) "Tray order: SOL 1, SOL 2, SOL 3, DECOY"
+                text = if (distinct) "Tray order: ${labels.joinToString(", ")}"
                 else "Dice must all be distinct",
                 style = TextStyle(
                     color = if (distinct) MasterDiceColors.Ivory.copy(alpha = 0.4f)
@@ -238,7 +292,7 @@ internal fun DebugDealPanel(
                     .pointerInput(distinct, dice.toList()) {
                         if (distinct) {
                             detectTapGestures {
-                                onDeal(dice.take(GUESS_SIZE), dice[GUESS_SIZE])
+                                onDeal(dice.take(level.cols), dice.drop(level.cols))
                             }
                         }
                     }
@@ -261,6 +315,7 @@ internal fun DebugDealPanel(
 @Composable
 internal fun HelpPanel(
     showMatchIndicators: Boolean,
+    level: Level,
     onDismiss: () -> Unit,
 ) {
     Box(
@@ -291,7 +346,8 @@ internal fun HelpPanel(
                 ),
             )
             Spacer(Modifier.height(12.dp))
-            RuleText("A hidden sequence of three dice is the solution. The tray holds those three plus one decoy — work out which three belong, and in what order.")
+            val decoyText = if (level.decoys == 1) "one decoy" else "${level.decoys} decoys"
+            RuleText("A hidden sequence of ${level.cols} dice is the solution. The tray holds those ${level.cols} plus $decoyText — work out which ${level.cols} belong, and in what order.")
             Spacer(Modifier.height(8.dp))
             RuleText("Drag dice from the bottom row into the active row — or tap a die to fill the first free cell. Tap or drag a placed die to return it to the bottom row. You have $ROWS guesses.")
             Spacer(Modifier.height(12.dp))

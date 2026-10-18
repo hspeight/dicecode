@@ -43,41 +43,68 @@ import com.masterdice.game.Feedback
 import com.masterdice.game.GameIntent
 import com.masterdice.game.GameState
 import com.masterdice.game.GameStatus
-import com.masterdice.game.GUESS_SIZE
 import com.masterdice.game.ROWS
 import com.masterdice.game.Slot
-import com.masterdice.game.TRAY_SIZE
 import com.masterdice.game.isLegalMove
 import com.masterdice.platform.SoundFx
 import com.masterdice.resources.Res
-import com.masterdice.resources.board_4x10
-import com.masterdice.resources.deal_row
 import com.masterdice.resources.enter_key
 import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
 
 internal val WellShape = RoundedCornerShape(10.dp)
 
-// board_4x10.png geometry (pixels of the 2400x5482 source artwork; the
-// bundled resource is a 0.6x downscale — identical fractions): 10 rows of
-// 3 square wells plus a continuous recessed peg track.
-internal const val BOARD_ASPECT = 5482f / 2400f
-internal const val BOARD_WELL_PX = 500f
-internal val BOARD_COLS_PX = floatArrayOf(98f, 630f, 1162f)
-internal const val BOARD_TRACK_CX_PX = 2014f
-internal const val BOARD_ROW_TOP_PX = 98f
-internal const val BOARD_ROW_PITCH_PX = 531.8f
+// Geometry of the baked board/strip artwork per level (source pixels; the
+// bundled resources are 0.6x downscales — identical fractions). The render
+// page tmp/board_render.html computes the same numbers: margin 98, well
+// pitch 532, row pitch 531.8, die 500, 576px peg track after a 64px gap,
+// deal strip the full board width with evenly spaced dice.
+internal data class BoardSpec(
+    val imageWidthPx: Float,
+    val boardAspect: Float,
+    val wellPx: Float,
+    val colsPx: FloatArray,
+    val trackCxPx: Float,
+    val rowTopPx: Float,
+    val rowPitchPx: Float,
+    val dealAspect: Float,
+    val dealDieTopPx: Float,
+    val dealColsPx: FloatArray,
+)
 
-// deal_row.png: standalone 2400x700 asset rendered below the board —
-// a brass-bordered strip holding four dice wells evenly spaced across
-// its width (80px margins and gaps between the 500px dice).
-internal const val DEAL_ASPECT = 700f / 2400f
-internal const val DEAL_DIE_TOP_PX = 100f
-internal val BOARD_DICE_COLS_PX = floatArrayOf(80f, 660f, 1240f, 1820f)
+internal fun boardSpec(levelIndex: Int): BoardSpec = when (levelIndex) {
+    // board_l1.png + deal_l1.png: 2932x5482, 4 wells/row, 5-die strip.
+    1 -> BoardSpec(
+        imageWidthPx = 2932f,
+        boardAspect = 5482f / 2932f,
+        wellPx = 500f,
+        colsPx = floatArrayOf(98f, 630f, 1162f, 1694f),
+        trackCxPx = 2546f,
+        rowTopPx = 98f,
+        rowPitchPx = 531.8f,
+        dealAspect = 700f / 2932f,
+        dealDieTopPx = 100f,
+        dealColsPx = floatArrayOf(72f, 644f, 1216f, 1788f, 2360f),
+    )
+    // board_4x10.png + deal_row.png: 2400x5482, 3 wells/row, 4-die strip.
+    else -> BoardSpec(
+        imageWidthPx = 2400f,
+        boardAspect = 5482f / 2400f,
+        wellPx = 500f,
+        colsPx = floatArrayOf(98f, 630f, 1162f),
+        trackCxPx = 2014f,
+        rowTopPx = 98f,
+        rowPitchPx = 531.8f,
+        dealAspect = 700f / 2400f,
+        dealDieTopPx = 100f,
+        dealColsPx = floatArrayOf(80f, 660f, 1240f, 1820f),
+    )
+}
 
 @Composable
 internal fun BoxScope.GuessRow(
     state: GameState,
+    spec: BoardSpec,
     row: Int,
     boardW: Dp,
     cell: Dp,
@@ -93,13 +120,13 @@ internal fun BoxScope.GuessRow(
     val isSubmitted = row < state.guesses.size
 
     // Artwork well positions in board-width fractions.
-    val colX = BOARD_COLS_PX.map { boardW * (it / 2400f) }
+    val colX = spec.colsPx.map { boardW * (it / spec.imageWidthPx) }
     val rowTop =
-        boardW * ((BOARD_ROW_TOP_PX + (ROWS - 1 - row) * BOARD_ROW_PITCH_PX) / 2400f)
-    // Center-x of the baked peg track that replaces the 4th well column.
-    val trackCx = boardW * (BOARD_TRACK_CX_PX / 2400f)
+        boardW * ((spec.rowTopPx + (ROWS - 1 - row) * spec.rowPitchPx) / spec.imageWidthPx)
+    // Center-x of the baked peg track that follows the guess columns.
+    val trackCx = boardW * (spec.trackCxPx / spec.imageWidthPx)
 
-    for (col in 0 until GUESS_SIZE) {
+    for (col in 0 until state.level.cols) {
         val slot = Slot.Cell(row, col)
         val die = state.dieAt(slot)
         val draggingAway = dd.session?.from == slot
@@ -427,23 +454,24 @@ private fun EnterCell(state: GameState, size: Dp, onIntent: (GameIntent) -> Unit
     }
 }
 
-/** The four dealt dice, seated in the standalone deal-row wells. */
+/** The dealt dice, seated in the standalone deal-row wells. */
 @Composable
 internal fun DiceRow(
     state: GameState,
+    spec: BoardSpec,
     boardW: Dp,
     cell: Dp,
     dd: DragDropState,
     onIntent: (GameIntent) -> Unit,
 ) {
-    val colX = BOARD_DICE_COLS_PX.map { boardW * (it / 2400f) }
-    val rowTop = boardW * (DEAL_DIE_TOP_PX / 2400f)
+    val colX = spec.dealColsPx.map { boardW * (it / spec.imageWidthPx) }
+    val rowTop = boardW * (spec.dealDieTopPx / spec.imageWidthPx)
     // The die art is a rounded square covering an inscribed 0.87 square;
     // dice-row cells sit fully behind the die, centered on the wells.
     val diceCell = cell * 0.87f
     val inset = (cell - diceCell) / 2
 
-    for (i in 0 until TRAY_SIZE) {
+    for (i in 0 until state.level.traySize) {
         val slot = Slot.Tray(i)
         val die = state.tray[i]
         val draggingAway = dd.session?.from == slot

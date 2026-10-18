@@ -6,7 +6,7 @@ const val ROWS = 10
 const val GUESS_SIZE = 3
 const val TRAY_SIZE = 4
 
-const val SAVE_VERSION = 3
+const val SAVE_VERSION = 4
 
 @Serializable
 enum class DieColour { RED, BLUE, GREEN, ORANGE, PINK, TEAL }
@@ -46,9 +46,11 @@ data class GameState(
     val seed: Long,
     /** False once a debug tool touched the game; such games don't earn points. */
     val scored: Boolean = true,
-    /** Index into [LEVELS]; only level 0 is playable until levels ship. */
+    /** Index into [LEVELS]; levels ship one at a time. */
     val levelIndex: Int = 0,
 ) {
+    val level: Level get() = LEVELS[levelIndex.coerceIn(0, LEVELS.lastIndex)]
+
     val activeRow: Int get() = guesses.size
 
     val canSubmit: Boolean
@@ -57,9 +59,9 @@ data class GameState(
     fun dieAt(slot: Slot): Die? = when (slot) {
         is Slot.Tray -> tray.getOrNull(slot.index)
         is Slot.Cell -> when {
-            slot.row == activeRow && slot.col in 0 until GUESS_SIZE ->
+            slot.row == activeRow && slot.col in 0 until level.cols ->
                 activeCells.getOrNull(slot.col)
-            slot.row in guesses.indices && slot.col in 0 until GUESS_SIZE ->
+            slot.row in guesses.indices && slot.col in 0 until level.cols ->
                 guesses[slot.row].dice.getOrNull(slot.col)
             else -> null
         }

@@ -33,7 +33,6 @@ import com.masterdice.game.Die
 import com.masterdice.game.GameIntent
 import com.masterdice.game.GameState
 import com.masterdice.game.GameStatus
-import com.masterdice.game.GUESS_SIZE
 import com.masterdice.game.ROWS
 import com.masterdice.game.Slot
 import com.masterdice.game.duplicateGuessIndex
@@ -41,9 +40,12 @@ import com.masterdice.platform.SoundFx
 import com.masterdice.platform.debugToolsEnabled
 import com.masterdice.resources.Res
 import com.masterdice.resources.board_4x10
+import com.masterdice.resources.board_l1
+import com.masterdice.resources.deal_l1
 import com.masterdice.resources.deal_row
 import androidx.compose.ui.layout.ContentScale
 import org.jetbrains.compose.resources.painterResource
+import kotlin.random.Random
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -85,14 +87,14 @@ fun GameScreen(
     LaunchedEffect(state.guesses.size) {
         if (state.guesses.size > revealedRows) {
             reveal.snapTo(0f)
-            reveal.animateTo(1f, tween(GUESS_SIZE * 150))
+            reveal.animateTo(1f, tween(state.level.cols * 150))
             revealedRows = state.guesses.size
         }
     }
 
     fun feedbackShown(row: Int, col: Int): Boolean =
         row < revealedRows ||
-            (row == state.guesses.lastIndex && col < reveal.value * GUESS_SIZE)
+            (row == state.guesses.lastIndex && col < reveal.value * state.level.cols)
 
     // A full active row identical to a submitted guess earns a warning.
     // Dismissed once per arrangement; re-arms if the row changes.
@@ -107,6 +109,7 @@ fun GameScreen(
             .safeDrawingPadding()
             .onGloballyPositioned { dd.container = it },
     ) {
+        val spec = boardSpec(state.levelIndex)
         val maxBoardWidth = if (maxWidth > 480.dp) 480.dp else maxWidth
         val gap = 24.dp
         // The board is a fixed-aspect artwork scaled from boardW; its width
@@ -114,13 +117,13 @@ fun GameScreen(
         // budget once the header rows, deal row, and spacers are paid for.
         val boardW = minOf(
             maxBoardWidth - 16.dp,
-            (maxHeight - 130.dp - gap) / (BOARD_ASPECT + DEAL_ASPECT),
+            (maxHeight - 130.dp - gap) / (spec.boardAspect + spec.dealAspect),
         ) * 0.81f
-        val boardH = boardW * BOARD_ASPECT
-        // One cell = one artwork well (500px of the 2400px-wide image);
-        // dice fill their wells edge to edge.
-        val cell = boardW * (BOARD_WELL_PX / 2400f)
-        // 4th-column cell — sized to the enter key, centered on the peg track.
+        val boardH = boardW * spec.boardAspect
+        // One cell = one artwork well scaled by the image width; dice fill
+        // their wells edge to edge.
+        val cell = boardW * (spec.wellPx / spec.imageWidthPx)
+        // Peg-column cell — sized to the enter key, centered on the track.
         val enterSize = cell * 0.9f
 
         Column(
@@ -154,7 +157,10 @@ fun GameScreen(
 
             Box(modifier = Modifier.size(boardW, boardH)) {
                 Image(
-                    painter = painterResource(Res.drawable.board_4x10),
+                    painter = painterResource(
+                        if (state.levelIndex == 1) Res.drawable.board_l1
+                        else Res.drawable.board_4x10,
+                    ),
                     contentDescription = null,
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier.matchParentSize(),
@@ -162,6 +168,7 @@ fun GameScreen(
                 for (row in ROWS - 1 downTo 0) {
                     GuessRow(
                         state = state,
+                        spec = spec,
                         row = row,
                         boardW = boardW,
                         cell = cell,
@@ -187,16 +194,19 @@ fun GameScreen(
             }
 
             // Standalone deal row: a brass-bordered strip holding the
-            // four dealt dice, detached below the board.
+            // dealt dice, detached below the board.
             Spacer(Modifier.height(gap))
-            Box(modifier = Modifier.size(boardW, boardW * DEAL_ASPECT)) {
+            Box(modifier = Modifier.size(boardW, boardW * spec.dealAspect)) {
                 Image(
-                    painter = painterResource(Res.drawable.deal_row),
+                    painter = painterResource(
+                        if (state.levelIndex == 1) Res.drawable.deal_l1
+                        else Res.drawable.deal_row,
+                    ),
                     contentDescription = null,
                     contentScale = ContentScale.FillBounds,
                     modifier = Modifier.matchParentSize(),
                 )
-                DiceRow(state, boardW, cell, dd, onIntent)
+                DiceRow(state, spec, boardW, cell, dd, onIntent)
             }
         }
 
@@ -218,6 +228,7 @@ fun GameScreen(
         if (showHelp) {
             HelpPanel(
                 showMatchIndicators = showMatchIndicators,
+                level = state.level,
                 onDismiss = { showHelp = false },
             )
         }
@@ -234,8 +245,14 @@ fun GameScreen(
 
         if (showDealPicker) {
             DebugDealPanel(
-                onDeal = { solution, decoy ->
-                    onIntent(GameIntent.NewGameWithDeal(solution, decoy))
+                levelIndex = state.levelIndex,
+                onLevelSelect = {
+                    onIntent(GameIntent.NewGame(Random.nextLong(), it))
+                },
+                onDeal = { solution, decoys ->
+                    onIntent(
+                        GameIntent.NewGameWithDeal(solution, decoys, state.levelIndex),
+                    )
                     showDealPicker = false
                 },
                 onDismiss = { showDealPicker = false },

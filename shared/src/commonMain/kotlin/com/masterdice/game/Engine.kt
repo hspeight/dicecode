@@ -9,16 +9,24 @@ sealed interface GameIntent {
     data class TapMove(val slot: Slot) : GameIntent
 
     data object Submit : GameIntent
-    data class NewGame(val seed: Long) : GameIntent
+    data class NewGame(val seed: Long, val levelIndex: Int = 0) : GameIntent
 
     /** Debug builds only: start a game with an explicitly chosen deal. */
-    data class NewGameWithDeal(val solution: List<Die>, val decoy: Die) : GameIntent
+    data class NewGameWithDeal(
+        val solution: List<Die>,
+        val decoys: List<Die>,
+        val levelIndex: Int = 0,
+    ) : GameIntent {
+        constructor(solution: List<Die>, decoy: Die) :
+            this(solution, listOf(decoy), 0)
+    }
 
     /** Debug builds only: revert the last submitted guess. */
     data object UndoGuess : GameIntent
 }
 
-fun newGame(seed: Long): GameState {
+fun newGame(seed: Long, levelIndex: Int = 0): GameState {
+    val level = LEVELS[levelIndex]
     val random = Random(seed)
 
     fun randomDie(): Die = Die(
@@ -27,44 +35,60 @@ fun newGame(seed: Long): GameState {
     )
 
     val solution = mutableListOf<Die>()
-    while (solution.size < GUESS_SIZE) {
+    while (solution.size < level.cols) {
         val die = randomDie()
         if (die !in solution) solution += die
     }
 
-    var decoy = randomDie()
-    while (decoy in solution) decoy = randomDie()
+    val decoys = mutableListOf<Die>()
+    while (decoys.size < level.decoys) {
+        val die = randomDie()
+        if (die !in solution && die !in decoys) decoys += die
+    }
 
-    val deal = (solution + decoy).shuffled(random)
+    val deal = (solution + decoys).shuffled(random)
 
     return GameState(
         solution = solution,
         deal = deal,
         tray = deal,
-        activeCells = List(GUESS_SIZE) { null },
+        activeCells = List(level.cols) { null },
         guesses = emptyList(),
         status = GameStatus.PLAYING,
         seed = seed,
+        levelIndex = levelIndex,
     )
 }
 
-/** Debug deal: explicit solution order and decoy; tray shows them listed order. */
-fun newGame(solution: List<Die>, decoy: Die): GameState {
-    require(solution.size == GUESS_SIZE && solution.distinct().size == GUESS_SIZE) {
-        "Solution must be $GUESS_SIZE distinct dice"
+/** Debug deal: explicit solution order and decoys; tray shows listed order. */
+fun newGame(
+    solution: List<Die>,
+    decoys: List<Die>,
+    levelIndex: Int = 0,
+): GameState {
+    val level = LEVELS[levelIndex]
+    require(solution.size == level.cols && solution.distinct().size == level.cols) {
+        "Solution must be ${level.cols} distinct dice"
     }
-    require(decoy !in solution) { "Decoy must not be a solution die" }
-    val deal = solution + decoy
+    require(decoys.size == level.decoys) { "Level $levelIndex takes ${level.decoys} decoys" }
+    require(decoys.distinct().size == decoys.size && decoys.none { it in solution }) {
+        "Decoys must be distinct and not in the solution"
+    }
+    val deal = solution + decoys
     return GameState(
         solution = solution,
         deal = deal,
         tray = deal,
-        activeCells = List(GUESS_SIZE) { null },
+        activeCells = List(level.cols) { null },
         guesses = emptyList(),
         status = GameStatus.PLAYING,
         seed = 0L,
+        levelIndex = levelIndex,
     )
 }
+
+fun newGame(solution: List<Die>, decoy: Die): GameState =
+    newGame(solution, listOf(decoy), 0)
 
 fun isLegalMove(state: GameState, from: Slot, to: Slot): Boolean {
     if (state.status != GameStatus.PLAYING) return false
@@ -72,23 +96,24 @@ fun isLegalMove(state: GameState, from: Slot, to: Slot): Boolean {
     if (state.dieAt(from) == null) return false
 
     val row = state.activeRow
+    val level = state.level
     return when {
         // Tray -> empty cell in the active row.
         from is Slot.Tray && to is Slot.Cell ->
-            from.index in 0 until TRAY_SIZE &&
-                to.row == row && to.col in 0 until GUESS_SIZE &&
+            from.index in 0 until level.traySize &&
+                to.row == row && to.col in 0 until level.cols &&
                 state.dieAt(to) == null
 
         // Cell in the active row -> empty tray slot.
         from is Slot.Cell && to is Slot.Tray ->
-            from.row == row && from.col in 0 until GUESS_SIZE &&
-                to.index in 0 until TRAY_SIZE &&
+            from.row == row && from.col in 0 until level.cols &&
+                to.index in 0 until level.traySize &&
                 state.dieAt(to) == null
 
         // Cell -> cell within the active row (swap; empty target = plain move).
         from is Slot.Cell && to is Slot.Cell ->
             from.row == row && to.row == row &&
-                from.col in 0 until GUESS_SIZE && to.col in 0 until GUESS_SIZE
+                from.col in 0 until level.cols && to.col in 0 until level.cols
 
         else -> false
     }
@@ -117,10 +142,11 @@ fun evaluate(guess: List<Die>, solution: List<Die>): List<Feedback> =
     }
 
 fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
-    is GameIntent.NewGame -> newGame(intent.seed)
+    is GameIntent.NewGame -> newGame(intent.seed, intent.levelIndex)
 
     is GameIntent.NewGameWithDeal ->
-        newGame(intent.solution, intent.decoy).copy(scored = false)
+        newGame(intent.solution, intent.decoys, intent.levelIndex)
+            .copy(scored = false)
 
     GameIntent.UndoGuess -> {
         val undone = undoGuess(state)
@@ -147,7 +173,7 @@ fun reduce(state: GameState, intent: GameIntent): GameState = when (intent) {
         state.copy(
             guesses = state.guesses + guess,
             tray = state.deal,
-            activeCells = List(GUESS_SIZE) { null },
+            activeCells = List(state.level.cols) { null },
             status = when {
                 won -> GameStatus.WON
                 state.guesses.size + 1 >= ROWS -> GameStatus.LOST
