@@ -173,4 +173,32 @@ class GameViewModelTest {
         assertEquals(2, restored.state.value.levelIndex)
         assertEquals(3, restored.state.value.usedPuzzleIdsByLevel[2]?.size)
     }
+
+    @Test
+    fun legacyFourPositionGameResumesThenNextGameStartsTheNewBank() {
+        val fs = FakeFileSystem()
+        val store = GameStore("/saves", fs)
+        // Old random four-position games have no puzzle ID or bank-1 selection history.
+        val old = newGame(
+            listOf(Die(DieColour.RED, 1), Die(DieColour.BLUE, 2),
+                Die(DieColour.GREEN, 3), Die(DieColour.ORANGE, 4)),
+            listOf(Die(DieColour.PINK, 5)), levelIndex = 1,
+        ).copy(usedPuzzleIds = listOf(4, 5), usedPuzzleIdsByLevel = mapOf(2 to listOf(8, 9)))
+        val playing = reduce(old, GameIntent.Move(Slot.Tray(0), Slot.Cell(0, 0)))
+        store.save(playing)
+        val vm = GameViewModel(store, Random(17))
+        assertEquals(playing, vm.state.value)
+        assertEquals(null, vm.state.value.puzzleId)
+        vm.newGame()
+        assertEquals(1, vm.state.value.levelIndex)
+        assertTrue(vm.state.value.puzzleId != null)
+        assertEquals(listOf(4, 5), vm.state.value.usedPuzzleIds)
+        assertEquals(listOf(8, 9), vm.state.value.usedPuzzleIdsByLevel[2])
+        assertEquals(1, vm.state.value.usedPuzzleIdsByLevel.getValue(1).size)
+        val restored = GameViewModel(GameStore("/saves", fs), Random(9))
+        assertEquals(vm.state.value, restored.state.value)
+        restored.newGame()
+        assertEquals(1, restored.state.value.levelIndex)
+        assertEquals(2, restored.state.value.usedPuzzleIdsByLevel.getValue(1).size)
+    }
 }

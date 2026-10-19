@@ -35,6 +35,8 @@ fun newGame(
     val random = Random(seed)
     val selected = when (levelIndex) {
         0 -> PuzzleLibrary.draw(seed, usedPuzzleIds)
+        FourPositionPuzzleLibrary.LEVEL_INDEX ->
+            FourPositionPuzzleLibrary.draw(seed, usedPuzzleIdsByLevel[levelIndex].orEmpty())
         TwoDecoyPuzzleLibrary.LEVEL_INDEX ->
             TwoDecoyPuzzleLibrary.draw(seed, usedPuzzleIdsByLevel[levelIndex].orEmpty())
         else -> null
