@@ -28,7 +28,7 @@ data class Level(
 
 val LEVELS = listOf(
     Level(0, cols = 3, traySize = 4, par = 4, bound = 5, base = 100),
-    Level(1, cols = 4, traySize = 5, par = 3, bound = 6, base = 150),
+    Level(1, cols = 4, traySize = 5, par = 3, bound = FourPositionPuzzleLibrary.GUARANTEED_GUESSES, base = 150),
     Level(2, cols = 3, traySize = 5, par = 4, bound = TwoDecoyPuzzleLibrary.GUARANTEED_GUESSES, base = 200),
     Level(3, cols = 3, traySize = 6, par = 4, bound = 6, base = 250),
     Level(4, cols = 4, traySize = 6, par = 4, bound = 6, base = 350),

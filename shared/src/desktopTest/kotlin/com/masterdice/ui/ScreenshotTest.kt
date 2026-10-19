@@ -22,6 +22,9 @@ import com.masterdice.game.reduce
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.test.Test
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 
 /** Renders representative states to PNGs under <repo>/tmp for visual review. */
 @OptIn(ExperimentalTestApi::class)
@@ -214,5 +217,30 @@ class ScreenshotTest {
         onNodeWithTag("settings").performClick()
         waitForIdle()
         ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", File(tmpDir(), "bank-settings.png"))
+    }
+
+    @Test
+    fun captureFourPositionBank() = runComposeUiTest {
+        capture(newGame(17L, levelIndex = 1), "four-position-bank.png")
+    }
+
+    @Test
+    fun captureThreeBankSettingsOnPhone() = withDesktopDebugTools(false) {
+        runComposeUiTest {
+            var state by mutableStateOf(newGame(17L, levelIndex = 1))
+            setContent {
+                androidx.compose.foundation.layout.Box(
+                    androidx.compose.ui.Modifier
+                        .requiredSize(360.dp, 720.dp)
+                        .testTag("phoneViewport"),
+                ) {
+                    GameScreen(state, onIntent = { state = reduce(state, it) }, onNewGame = {})
+                }
+            }
+            onNodeWithTag("settings").performClick()
+            waitForIdle()
+            ImageIO.write(onNodeWithTag("phoneViewport").captureToImage().toAwtImage(),
+                "png", File(tmpDir(), "three-bank-settings-phone.png"))
+        }
     }
 }

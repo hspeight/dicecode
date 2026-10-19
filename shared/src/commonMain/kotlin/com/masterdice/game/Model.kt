@@ -46,7 +46,7 @@ data class GameState(
     val seed: Long,
     /** False once a debug tool touched the game; such games don't earn points. */
     val scored: Boolean = true,
-    /** Index into [LEVELS]; levels ship one at a time. */
+    /** Stable index into [LEVELS], used by saves and per-level scores. */
     val levelIndex: Int = 0,
     /** Legacy Level 1 history; retained to preserve existing version-5 saves. */
     val usedPuzzleIds: List<Int> = emptyList(),

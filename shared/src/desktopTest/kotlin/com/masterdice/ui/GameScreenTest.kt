@@ -324,4 +324,55 @@ class GameScreenTest {
             assertEquals(twoDecoyHistory, state.usedPuzzleIdsByLevel)
         }
     }
+
+    @Test
+    fun normalSettingsCanPlayAndReplayTheFourPositionBank() = withDesktopDebugTools(false) {
+        runComposeUiTest {
+            var state by mutableStateOf(newGame(7L))
+            setContent {
+                GameScreen(
+                    state = state,
+                    onIntent = { state = reduce(state, it) },
+                    onNewGame = { state = reduce(state, GameIntent.NewGame(99L, state.levelIndex)) },
+                )
+            }
+            onNodeWithTag("settings").performClick()
+            onNodeWithTag("bankLevel-1").performClick()
+            waitForIdle()
+            assertEquals(1, state.levelIndex)
+            assertTrue(state.puzzleId != null)
+            assertEquals(4, state.activeCells.size)
+            assertEquals(5, state.deal.size)
+            onNodeWithTag("tray-4").fetchSemanticsNode()
+            onNodeWithTag("cell-0-3").fetchSemanticsNode()
+            onNodeWithTag("cell-0-4").assertDoesNotExist()
+
+            val decoy = state.deal.first { it !in state.solution }
+            playDice({ state }, 0, listOf(decoy) + state.solution.take(3))
+            onNodeWithTag("enter").performClick()
+            waitForIdle()
+            assertEquals(state.deal, state.tray)
+            assertEquals(4, state.guesses.single().feedback.size)
+            val description = onNodeWithTag("cell-0-0").fetchSemanticsNode()
+                .config[androidx.compose.ui.semantics.SemanticsProperties.ContentDescription].joinToString()
+            assertTrue(!description.contains("match"))
+
+            playDice({ state }, 1, state.solution)
+            onNodeWithTag("enter").performClick()
+            waitForIdle()
+            assertEquals(GameStatus.WON, state.status)
+            onNodeWithTag("newGame").performClick()
+            waitForIdle()
+            assertEquals(1, state.levelIndex)
+            assertEquals(2, state.usedPuzzleIdsByLevel.getValue(1).size)
+
+            for (index in listOf(0, 2, 1)) {
+                onNodeWithTag("settings").performClick()
+                onNodeWithTag("bankLevel-$index").performClick()
+                waitForIdle()
+                assertEquals(index, state.levelIndex)
+            }
+            assertEquals(3, state.usedPuzzleIdsByLevel.getValue(1).size)
+        }
+    }
 }

@@ -1,6 +1,6 @@
 # Two-decoy bank generation
 
-The next normal-play level uses stable engine index 2: three secret positions and two decoys. The experimental four-position configuration stays at index 1 for save/stat compatibility.
+The next normal-play level uses stable engine index 2: three secret positions and two decoys. The four-position bank stays at index 1 for save/stat compatibility.
 
 Run `./gradlew :shared:generateTwoDecoyBank` (or `gradlew.bat` on Windows). The task writes `bank.txt`, `audit.csv`, and `summary.txt` into the root `build/two-decoy-bank` directory. It does not overwrite the shipped bank.
 
@@ -16,8 +16,16 @@ Equality plus the undirected colour-or-value similarity graph determines all fee
 
 Run `./gradlew :shared:validateFourPositionDeals`. It writes `structures.csv` and `summary.txt` to root `build/four-position-validation`. This audit enumerates all 376,992 unordered five-die deal sets, including the rare all-same-colour or all-same-value case absent from the current two-decoy bank. There are 18 realizable similarity graphs. Four-position secrets and legal guesses each number 120.
 
-Exact results: 327,600 sets have worst case four guesses, 45,000 have five, and 4,392 have six. The final winning submission counts. This proves a six-guess guarantee for every random deal in the current four-position, one-decoy level; it is not a new 1,000-entry bank. The future bank can therefore be selected from proven valid candidates.
+Exact results: 327,600 sets have worst case four guesses, 45,000 have five, and 4,392 have six. The final winning submission counts. This proves a six-guess guarantee for every random deal in the current four-position, one-decoy level; the separate four-position bank is selected from these proven valid candidates.
 
 `FourPositionMinimax` uses two 64-bit words to represent all 120 candidates. It tests exact depth feasibility from one through ten guesses. Response-capacity pruning is an upper bound on decision-tree leaves; sequential candidate submission is a constructive bound. At the unrestricted root only, permutations of columns are equivalent under count-only feedback, so the five sorted four-die guesses cover every possible omitted die. Non-root searches retain all 120 legal guesses. Budget exhaustion throws and is never reported as a proof.
 
 Common tests check all 18 representative structures and reversed die orderings. Desktop tests re-enumerate every deal and compare results against a separate BigInteger reference using the actual engine evaluator, all root guesses, and no sequential-submission shortcut. The independent reference agreed on all 18 results. `four-position-structures.csv` records representative dice, population counts, exact guarantees and observational search statistics.
+
+## Third stored bank: four positions, one decoy
+
+Run `./gradlew :shared:generateFourPositionBank`. Outputs go to root `build/four-position-bank` (`bank.txt`, `audit.csv`, `summary.txt`) and never overwrite the shipped bank. Kotlin Random seed 2026101904 selects the first 1,000 distinct five-die sets from shuffled colour/value IDs. Four ordered secret dice precede the decoy in each ten-character row. Published row numbers are stable IDs. Generation uses Kotlin 2.4.20.
+
+The exact selected-bank histogram is 857 at four guesses, 134 at five, and 9 at six, including the winning submission. All 17 represented graph classes are evaluated with FourPositionMinimax, never accepted from a budget-limited run. `four-position-bank-audit.csv` records every row, canonical structure, and exact optimum. Common tests revalidate the bank, and a desktop test regenerates every row exactly.
+
+The shared decoder now accepts a solution-size parameter (default three), leaving both existing encoded banks unchanged. The new bank is `FourPositionPuzzleLibrary` at stable engine index 1 with independent history key 1. Old in-progress four-position games remain resumable before their first bank draw.
