@@ -48,10 +48,12 @@ data class GameState(
     val scored: Boolean = true,
     /** Index into [LEVELS]; levels ship one at a time. */
     val levelIndex: Int = 0,
-    /** Puzzle-library selection state; retained across games and app restarts. */
+    /** Legacy Level 1 history; retained to preserve existing version-5 saves. */
     val usedPuzzleIds: List<Int> = emptyList(),
     /** Selected prevalidated puzzle id for this game, or null for other levels/debug deals. */
     val puzzleId: Int? = null,
+    /** Independent histories for additional bank levels, keyed by stable level index. */
+    val usedPuzzleIdsByLevel: Map<Int, List<Int>> = emptyMap(),
 ) {
     val level: Level get() = LEVELS[levelIndex.coerceIn(0, LEVELS.lastIndex)]
 

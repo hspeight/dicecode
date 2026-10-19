@@ -3,6 +3,7 @@ package com.masterdice.ui
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +35,7 @@ import com.masterdice.game.GameIntent
 import com.masterdice.game.GameState
 import com.masterdice.game.GameStatus
 import com.masterdice.game.ROWS
+import com.masterdice.game.TwoDecoyPuzzleLibrary
 import com.masterdice.game.Slot
 import com.masterdice.game.duplicateGuessIndex
 import com.masterdice.platform.SoundFx
@@ -197,16 +199,22 @@ fun GameScreen(
             // dealt dice, detached below the board.
             Spacer(Modifier.height(gap))
             Box(modifier = Modifier.size(boardW, boardW * spec.dealAspect)) {
-                Image(
-                    painter = painterResource(
-                        if (state.levelIndex == 1) Res.drawable.deal_l1
-                        else Res.drawable.deal_row,
-                    ),
-                    contentDescription = null,
-                    contentScale = ContentScale.FillBounds,
-                    modifier = Modifier.matchParentSize(),
-                )
-                DiceRow(state, spec, boardW, cell, dd, onIntent)
+                if (state.levelIndex == TwoDecoyPuzzleLibrary.LEVEL_INDEX) {
+                    Box(Modifier.matchParentSize()
+                        .background(MasterDiceColors.RowPanel, WellShape)
+                        .border(2.dp, MasterDiceColors.Brass, WellShape))
+                } else {
+                    Image(
+                        painter = painterResource(
+                            if (state.levelIndex == 1) Res.drawable.deal_l1
+                            else Res.drawable.deal_row,
+                        ),
+                        contentDescription = null,
+                        contentScale = ContentScale.FillBounds,
+                        modifier = Modifier.matchParentSize(),
+                    )
+                }
+                DiceRow(state, spec, boardW, boardW * (spec.dealWellPx / spec.imageWidthPx), dd, onIntent)
             }
         }
 
@@ -235,6 +243,11 @@ fun GameScreen(
 
         if (showSettings) {
             SettingsPanel(
+                levelIndex = state.levelIndex,
+                onLevelSelect = { index ->
+                    onIntent(GameIntent.NewGame(Random.nextLong(), index))
+                    showSettings = false
+                },
                 soundEnabled = soundEnabled,
                 onToggleSound = onToggleSound,
                 showMatchIndicators = debugToolsEnabled && showMatchIndicators,

@@ -201,4 +201,18 @@ class ScreenshotTest {
             File(tmpDir(), "indicators-hidden.png"),
         )
     }
+
+    @Test
+    fun captureTwoDecoyBank() = runComposeUiTest {
+        capture(newGame(17L, levelIndex = 2), "two-decoy-bank.png")
+    }
+
+    @Test
+    fun captureBankSettings() = runComposeUiTest {
+        var state by mutableStateOf(newGame(17L, levelIndex = 2))
+        setContent { GameScreen(state, onIntent = { state = reduce(state, it) }, onNewGame = {}) }
+        onNodeWithTag("settings").performClick()
+        waitForIdle()
+        ImageIO.write(onRoot().captureToImage().toAwtImage(), "png", File(tmpDir(), "bank-settings.png"))
+    }
 }

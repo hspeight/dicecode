@@ -152,4 +152,25 @@ class GameViewModelTest {
         assertEquals(0, vm.stats.value.totalScore)
         assertFalse(vm.newBest.value)
     }
+
+    @Test
+    fun nextGameAndRestartKeepTwoDecoyLevelAndIndependentHistories() {
+        val fs = FakeFileSystem()
+        val store = GameStore("/saves", fs)
+        val vm = GameViewModel(store, Random(42))
+        val firstHistory = vm.state.value.usedPuzzleIds
+        vm.dispatch(GameIntent.NewGame(99L, TwoDecoyPuzzleLibrary.LEVEL_INDEX))
+        val firstId = vm.state.value.puzzleId
+        vm.playWin()
+        vm.newGame()
+        assertEquals(2, vm.state.value.levelIndex)
+        assertTrue(firstId != vm.state.value.puzzleId)
+        assertEquals(firstHistory, vm.state.value.usedPuzzleIds)
+        assertEquals(2, vm.state.value.usedPuzzleIdsByLevel[2]?.size)
+        val restored = GameViewModel(GameStore("/saves", fs), Random(0))
+        assertEquals(vm.state.value, restored.state.value)
+        restored.newGame()
+        assertEquals(2, restored.state.value.levelIndex)
+        assertEquals(3, restored.state.value.usedPuzzleIdsByLevel[2]?.size)
+    }
 }

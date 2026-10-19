@@ -52,6 +52,14 @@ Every library puzzle is solvable in at most five guesses with count-only feedbac
 Per-position feedback is a debug-only aid, off by default. Android and iOS expose it only in debug builds; desktop development launches must explicitly set `-Dmasterdice.debug=true`. With that aid, a cyclic three-probe strategy followed by the inferred secret guarantees a win within four guesses. This positional proof does not apply to normal count-only play.
 
 
+## Next bank: three positions, two decoys
+
+The second normal-play bank contains 1,000 distinct five-die deals: three ordered secret dice and two decoys. All five colour/value pairs are distinct; colours and values may repeat. Dice stay fixed for the game. Normal feedback remains sorted counts, and positional feedback remains debug-only. The existing ten-guess limit and repeated-guess rules apply.
+
+Exact adaptive minimax over all 60 possible secrets and all 60 legal guesses establishes a six-guess bank-wide guarantee, including the winning submission. There are 832 deals with exact worst case four, 154 with five, and 14 with six. Normal tests validate the complete bank. Generation is reproducible with seed 20261019; the generator and per-entry audit are under `tools/puzzles`.
+
+Settings offers one-decoy and two-decoy banks, both with three positions. Changing the level starts a new game; New Game then stays on that level. Selection is random without replacement, with separate saved histories per bank. Existing version-5 saves and original-bank IDs remain valid. Stable engine index 2 is used for the new bank so the experimental four-position index 1 and existing scores are not reassigned. The three-position board is retained with a five-die tray. The scoring par remains the existing target of four; the guaranteed limit is six.
+
 ## Gameplay
 
 The player builds each guess by dragging 3 of the 4 tray dice into columns 1 to 3 of the active row, then taps the enter cell. A guess uses each selected die once, and repeating an earlier ordered guess is allowed.

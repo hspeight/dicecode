@@ -92,4 +92,17 @@ class GameStoreTest {
         fs.write("/saves/settings.json".toPath()) { writeUtf8("{ not json !!!") }
         assertEquals(GameStore.Settings(), GameStore("/saves", fs).loadSettings())
     }
+
+    @Test
+    fun preBankExtensionSaveKeepsOriginalHistory() {
+        val fs = FakeFileSystem()
+        val store = GameStore("/saves", fs)
+        val saved = newGame(99L)
+        store.save(saved)
+        val path = "/saves/game.json".toPath()
+        val oldJson = fs.read(path) { readUtf8() }
+            .replace(",\"usedPuzzleIdsByLevel\":{}", "")
+        fs.write(path) { writeUtf8(oldJson) }
+        assertEquals(saved, store.load())
+    }
 }

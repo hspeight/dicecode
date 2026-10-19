@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.v2.runComposeUiTest
+import com.masterdice.game.GameIntent
 import com.masterdice.game.Die
 import com.masterdice.game.Feedback
 import com.masterdice.game.GameState
@@ -278,6 +279,49 @@ class GameScreenTest {
             waitForIdle()
             assertEquals(0, state.levelIndex)
             assertEquals(4, state.tray.size)
+        }
+    }
+
+    @Test
+    fun normalSettingsStartsAndPlaysThreePositionsWithTwoDecoys() = withDesktopDebugTools(false) {
+        runComposeUiTest {
+            var state by mutableStateOf(newGame(7L))
+            setContent {
+                GameScreen(
+                    state = state,
+                    onIntent = { state = reduce(state, it) },
+                    onNewGame = {},
+                )
+            }
+            onNodeWithTag("settings").performClick()
+            onNodeWithTag("bankLevel-2").performClick()
+            waitForIdle()
+            assertEquals(2, state.levelIndex)
+            assertEquals(3, state.activeCells.size)
+            assertEquals(5, state.deal.size)
+            onNodeWithTag("tray-4").fetchSemanticsNode()
+            onNodeWithTag("cell-0-3").assertDoesNotExist()
+
+            val decoys = state.deal.filter { it !in state.solution }
+            playDice({ state }, 0, decoys + state.solution.take(1))
+            onNodeWithTag("enter").performClick()
+            waitForIdle()
+            assertEquals(state.deal, state.tray)
+            assertEquals(3, state.guesses.single().feedback.size)
+
+            playDice({ state }, 1, state.solution)
+            onNodeWithTag("enter").performClick()
+            waitForIdle()
+            assertEquals(GameStatus.WON, state.status)
+            onNodeWithTag("endPanel").fetchSemanticsNode()
+
+            val twoDecoyHistory = state.usedPuzzleIdsByLevel
+            onNodeWithTag("settings").performClick()
+            onNodeWithTag("bankLevel-0").performClick()
+            waitForIdle()
+            assertEquals(0, state.levelIndex)
+            assertEquals(4, state.deal.size)
+            assertEquals(twoDecoyHistory, state.usedPuzzleIdsByLevel)
         }
     }
 }

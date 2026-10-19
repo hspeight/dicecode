@@ -46,6 +46,7 @@ kotlin {
         androidMain.dependencies {
             implementation(libs.androidx.activity.compose)
         }
+        getByName("desktopTest").kotlin.srcDir(rootProject.file("tools/puzzles"))
         getByName("desktopTest").dependencies {
             implementation(libs.compose.ui.test)
             implementation(compose.desktop.currentOs)
@@ -57,4 +58,12 @@ compose.resources {
     packageOfResClass = "com.masterdice.resources"
     publicResClass = false
     generateResClass = always
+}
+
+// Regenerates review artifacts only; never overwrites the shipped bank or stable puzzle IDs.
+tasks.register<JavaExec>("generateTwoDecoyBank") {
+    dependsOn("desktopTestClasses")
+    classpath = tasks.named<Test>("desktopTest").get().classpath
+    mainClass.set("com.masterdice.game.GenerateTwoDecoyBankKt")
+    args(rootProject.layout.buildDirectory.dir("two-decoy-bank").get().asFile.absolutePath)
 }
