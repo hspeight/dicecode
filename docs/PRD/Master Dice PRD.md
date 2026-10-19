@@ -70,7 +70,7 @@ The preceding exhaustive audit covers all 376,992 possible five-die sets and 18 
 
 Normal Settings exposes three configurations: 3 positions / 1 decoy, 3 positions / 2 decoys, and 4 positions / 1 decoy. Changing configuration starts a new game; New Game stays on the current configuration. Each bank draws without replacement from its own saved history. The new bank uses `usedPuzzleIdsByLevel[1]`; the original bank IDs and history and two-decoy history are unchanged. Existing in-progress four-position random games resume exactly as saved, and the bank is used for subsequent games. No save-version change is required.
 
-Normal visual and screen-reader feedback remains count-only. Positional feedback is still debug-only and off by default. Existing scoring par and base points are unchanged.
+Normal visual and screen-reader feedback remains count-only. Positional feedback is still debug-only and off by default. The four-position bank and the three-position, two-decoy bank both use par 4 and base 200.
 
 ## Gameplay
 
