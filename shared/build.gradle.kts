@@ -6,6 +6,37 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
 }
 
+// Generates a build stamp (commit count + short hash, e.g. "r123-a1b2c3d")
+// into a commonMain source so every platform shows the same version.
+val versionDir = layout.buildDirectory.dir("generated/version")
+val generateVersionInfo = tasks.register("generateVersionInfo") {
+    val outFile = versionDir.get().file("com/masterdice/Version.kt").asFile
+    val repoDir = rootProject.projectDir
+    outputs.file(outFile)
+    // Cheap git calls; regenerate every build so the stamp tracks HEAD.
+    outputs.upToDateWhen { false }
+    doLast {
+        fun git(vararg args: String): String = try {
+            val p = ProcessBuilder(listOf("git") + args.toList())
+                .directory(repoDir)
+                .start()
+            val text = p.inputStream.bufferedReader().readText().trim()
+            p.waitFor()
+            text
+        } catch (e: Exception) {
+            ""
+        }
+        val count = git("rev-list", "--count", "HEAD").ifEmpty { "0" }
+        val hash = git("rev-parse", "--short", "HEAD").ifEmpty { "dev" }
+        outFile.parentFile.mkdirs()
+        outFile.writeText(
+            "package com.masterdice\n\n" +
+                "/** Generated at build time — do not edit. */\n" +
+                "const val BUILD_VERSION = \"r$count-$hash\"\n",
+        )
+    }
+}
+
 kotlin {
     android {
         namespace = "com.masterdice"
@@ -27,6 +58,7 @@ kotlin {
     }
 
     sourceSets {
+        getByName("commonMain").kotlin.srcDir(versionDir)
         commonMain.dependencies {
             api(libs.compose.runtime)
             api(libs.compose.foundation)
@@ -58,6 +90,14 @@ compose.resources {
     packageOfResClass = "com.masterdice.resources"
     publicResClass = false
     generateResClass = always
+}
+
+tasks.matching {
+    it.name.startsWith("compile") &&
+        (it.name.contains("Kotlin") || it.name.contains("AndroidMain") ||
+            it.name.contains("HostTest") || it.name.contains("DesktopTest"))
+}.configureEach {
+    dependsOn(generateVersionInfo)
 }
 
 // Regenerates review artifacts only; never overwrites the shipped bank or stable puzzle IDs.

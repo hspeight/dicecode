@@ -29,7 +29,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.BasicText
+import com.masterdice.BUILD_VERSION
 import com.masterdice.game.Die
 import com.masterdice.game.GameIntent
 import com.masterdice.game.GameState
@@ -119,7 +126,7 @@ fun GameScreen(
         // budget once the header rows, deal row, and spacers are paid for.
         val boardW = minOf(
             maxBoardWidth - 16.dp,
-            (maxHeight - 130.dp - gap) / (spec.boardAspect + spec.dealAspect),
+            (maxHeight - 144.dp - gap) / (spec.boardAspect + spec.dealAspect),
         ) * 0.81f
         val boardH = boardW * spec.boardAspect
         // One cell = one artwork well scaled by the image width; dice fill
@@ -216,6 +223,18 @@ fun GameScreen(
                 }
                 DiceRow(state, spec, boardW, boardW * (spec.dealWellPx / spec.imageWidthPx), dd, onIntent)
             }
+
+            BasicText(
+                text = BUILD_VERSION,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .testTag("buildVersion")
+                    .semantics { contentDescription = "Build $BUILD_VERSION" },
+                style = TextStyle(
+                    color = MasterDiceColors.Ivory.copy(alpha = 0.35f),
+                    fontSize = 10.sp,
+                ),
+            )
         }
 
         DragOverlay(dd, cell)
