@@ -70,9 +70,15 @@ internal data class BoardSpec(
     val dealAspect: Float,
     val dealDieTopPx: Float,
     val dealColsPx: FloatArray,
+    val dealWellPx: Float = wellPx,
 )
 
 internal fun boardSpec(levelIndex: Int): BoardSpec = when (levelIndex) {
+    2 -> boardSpec(0).copy(
+        dealColsPx = floatArrayOf(60f, 530f, 1000f, 1470f, 1940f),
+        dealDieTopPx = 150f,
+        dealWellPx = 400f,
+    )
     // board_l1.png + deal_l1.png: 2932x5482, 4 wells/row, 5-die strip.
     1 -> BoardSpec(
         imageWidthPx = 2932f,

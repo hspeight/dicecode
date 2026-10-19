@@ -1,13 +1,14 @@
 package com.masterdice.game
 
-import kotlin.random.Random
-
 /** One exact, prevalidated three-position puzzle and its single decoy. */
 data class ValidatedPuzzle(
     val id: Int,
     val solution: List<Die>,
     val decoy: Die,
-)
+    val additionalDecoys: List<Die> = emptyList(),
+) {
+    val decoys: List<Die> get() = listOf(decoy) + additionalDecoys
+}
 
 data class PuzzleDraw(
     val puzzle: ValidatedPuzzle,
@@ -1025,39 +1026,9 @@ object PuzzleLibrary {
 0i0x0w0n
     """
 
-    val puzzles: List<ValidatedPuzzle> by lazy {
-        ENCODED_BANK.trim().lines().mapIndexed { id, row ->
-            require(row.length == 8) { "Invalid puzzle bank row $id" }
-            val dice = (0 until 4).map { offset ->
-                decodeDie(row.substring(offset * 2, offset * 2 + 2).toInt(36))
-            }
-            require(dice.distinct().size == 4) { "Puzzle $id repeats a die" }
-            ValidatedPuzzle(id, dice.take(3), dice[3])
-        }.also { require(it.size == BANK_SIZE) { "Expected $BANK_SIZE puzzles" } }
-    }
+    private val bank = PuzzleBank(ENCODED_BANK, decoyCount = 1, size = BANK_SIZE)
 
-    /**
-     * Draw uniformly from the unused entries for this cycle. The ordered
-     * history is stored in GameState, so selections survive app restarts.
-     * Once exhausted, begin a fresh cycle before drawing again.
-     */
-    fun draw(seed: Long, usedPuzzleIds: List<Int>): PuzzleDraw {
-        val used = usedPuzzleIds.filter { it in 0 until BANK_SIZE }.distinct()
-        val available = if (used.size == BANK_SIZE) {
-            (0 until BANK_SIZE).toList()
-        } else {
-            (0 until BANK_SIZE).filter { it !in used }
-        }
-        val puzzle = puzzles[available[Random(seed).nextInt(available.size)]]
-        val nextUsed = if (used.size == BANK_SIZE) listOf(puzzle.id) else used + puzzle.id
-        return PuzzleDraw(puzzle, nextUsed)
-    }
+    val puzzles: List<ValidatedPuzzle> get() = bank.puzzles
 
-    private fun decodeDie(id: Int): Die {
-        require(id in 0 until DieColour.entries.size * 6)
-        return Die(
-            colour = DieColour.entries[id / 6],
-            value = id % 6 + 1,
-        )
-    }
+    fun draw(seed: Long, usedPuzzleIds: List<Int>): PuzzleDraw = bank.draw(seed, usedPuzzleIds)
 }

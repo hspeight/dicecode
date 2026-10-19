@@ -128,7 +128,7 @@ internal fun DebugDealPanel(
                         letterSpacing = 1.sp,
                     ),
                 )
-                LEVELS.take(2).forEach { lvl ->
+                LEVELS.take(3).forEach { lvl ->
                     val active = lvl.index == levelIndex
                     Box(
                         modifier = Modifier
@@ -383,8 +383,53 @@ internal fun HelpPanel(
     }
 }
 
+
+/** Normal-play bank selection; debug experimental levels remain in the deal picker. */
+@Composable
+private fun BankLevelSelector(levelIndex: Int, onLevelSelect: (Int) -> Unit) {
+    BasicText(
+        text = "THREE POSITIONS",
+        style = TextStyle(color = MasterDiceColors.GoldHi, fontSize = 13.sp, fontWeight = FontWeight.Bold),
+    )
+    Spacer(Modifier.height(8.dp))
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (index in listOf(0, 2)) {
+            val selected = levelIndex == index
+            val title = if (index == 0) "1 DECOY" else "2 DECOYS"
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .testTag("bankLevel-$index")
+                    .semantics { contentDescription = "$title" + if (selected) ", selected" else "" }
+                    .background(if (selected) MasterDiceColors.Brass else MasterDiceColors.RowPanel, WellShape)
+                    .pointerInput(index, selected) {
+                        detectTapGestures { if (!selected) onLevelSelect(index) }
+                    }
+                    .padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                BasicText(
+                    text = title,
+                    style = TextStyle(
+                        color = if (selected) MasterDiceColors.InkBrown else MasterDiceColors.Ivory,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                    ),
+                )
+            }
+        }
+    }
+    Spacer(Modifier.height(6.dp))
+    BasicText(
+        text = "Changing level starts a new game.",
+        style = TextStyle(color = MasterDiceColors.Ivory.copy(alpha = 0.7f), fontSize = 11.sp),
+    )
+}
+
 @Composable
 internal fun SettingsPanel(
+    levelIndex: Int,
+    onLevelSelect: (Int) -> Unit,
     soundEnabled: Boolean,
     onToggleSound: (Boolean) -> Unit,
     showMatchIndicators: Boolean,
@@ -413,6 +458,8 @@ internal fun SettingsPanel(
                 // Swallow taps on the card itself so it doesn't dismiss.
                 .pointerInput(Unit) { detectTapGestures { } },
         ) {
+            BankLevelSelector(levelIndex, onLevelSelect)
+            Spacer(Modifier.height(14.dp))
             SettingsRow(
                 label = "SOUND FX",
                 tag = "toggleSound",

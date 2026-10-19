@@ -51,7 +51,7 @@ class GameViewModel(
     }
 
     fun newGame() {
-        dispatch(GameIntent.NewGame(random.nextLong()))
+        dispatch(GameIntent.NewGame(random.nextLong(), _state.value.levelIndex))
     }
 
     /** On the transition to WON/LOST, bank the score into per-level bests —
