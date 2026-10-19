@@ -1,5 +1,7 @@
 package com.masterdice.ui
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -384,23 +386,25 @@ internal fun HelpPanel(
 }
 
 
-/** Normal-play bank selection; debug experimental levels remain in the deal picker. */
+/** Normal-play bank selection, described by secret positions and decoy count. */
 @Composable
 private fun BankLevelSelector(levelIndex: Int, onLevelSelect: (Int) -> Unit) {
     BasicText(
-        text = "THREE POSITIONS",
+        text = "PUZZLE BANK",
         style = TextStyle(color = MasterDiceColors.GoldHi, fontSize = 13.sp, fontWeight = FontWeight.Bold),
     )
     Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (index in listOf(0, 2)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        for (index in listOf(0, 2, 1)) {
+            val level = LEVELS[index]
             val selected = levelIndex == index
-            val title = if (index == 0) "1 DECOY" else "2 DECOYS"
+            val decoyLabel = if (level.decoys == 1) "1 DECOY" else "${level.decoys} DECOYS"
+            val title = "${level.cols} POSITIONS · $decoyLabel"
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .testTag("bankLevel-$index")
-                    .semantics { contentDescription = "$title" + if (selected) ", selected" else "" }
+                    .semantics { contentDescription = title + if (selected) ", selected" else "" }
                     .background(if (selected) MasterDiceColors.Brass else MasterDiceColors.RowPanel, WellShape)
                     .pointerInput(index, selected) {
                         detectTapGestures { if (!selected) onLevelSelect(index) }
@@ -455,6 +459,7 @@ internal fun SettingsPanel(
                 )
                 .chunkySheen()
                 .padding(18.dp)
+                .verticalScroll(rememberScrollState())
                 // Swallow taps on the card itself so it doesn't dismiss.
                 .pointerInput(Unit) { detectTapGestures { } },
         ) {

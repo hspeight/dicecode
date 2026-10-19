@@ -1,6 +1,6 @@
 package com.masterdice.game
 
-/** One exact, prevalidated three-position puzzle and its single decoy. */
+/** One exact, prevalidated puzzle with an ordered solution and one or more decoys. */
 data class ValidatedPuzzle(
     val id: Int,
     val solution: List<Die>,

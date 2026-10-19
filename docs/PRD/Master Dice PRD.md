@@ -58,7 +58,19 @@ The second normal-play bank contains 1,000 distinct five-die deals: three ordere
 
 Exact adaptive minimax over all 60 possible secrets and all 60 legal guesses establishes a six-guess bank-wide guarantee, including the winning submission. There are 832 deals with exact worst case four, 154 with five, and 14 with six. Normal tests validate the complete bank. Generation is reproducible with seed 20261019; the generator and per-entry audit are under `tools/puzzles`.
 
-Settings offers one-decoy and two-decoy banks, both with three positions. Changing the level starts a new game; New Game then stays on that level. Selection is random without replacement, with separate saved histories per bank. Existing version-5 saves and original-bank IDs remain valid. Stable engine index 2 is used for the new bank so the experimental four-position index 1 and existing scores are not reassigned. The three-position board is retained with a five-die tray. The scoring par remains the existing target of four; the guaranteed limit is six.
+Settings offers this bank alongside the one-decoy banks with three or four positions. Changing the level starts a new game; New Game then stays on that level. Selection is random without replacement, with separate saved histories per bank. Existing version-5 saves and original-bank IDs remain valid. Stable engine index 2 is used for the new bank so four-position index 1 and existing scores are not reassigned. The three-position board is retained with a five-die tray. The scoring par remains the existing target of four; the guaranteed limit is six.
+
+## Third bank: four positions, one decoy
+
+The third stored bank contains 1,000 distinct five-die deals: four ordered secret dice followed by one decoy. It uses stable engine index 1, preserving existing saves and scores. All colour/value pairs in a deal are distinct; colours and values may repeat. The existing four-position board and five-die tray are used, with the enter cell after the fourth secret position.
+
+Each bank entry is validated with exact adaptive count-only minimax over all 120 possible secrets and all 120 legal guesses. Worst-case optima are four guesses for 857 puzzles, five for 134, and six for 9, including the final winning submission. The bank-wide guarantee is six within the ten-guess game limit. Generation uses Kotlin Random seed 2026101904; `:shared:generateFourPositionBank` reproduces every row and its audit without editing shipped IDs.
+
+The preceding exhaustive audit covers all 376,992 possible five-die sets and 18 realizable structures, establishing a universal six-guess guarantee. The selected bank contains 17 of those structures. Common tests validate every selected entry; desktop reference tests independently confirm all 18 structures. `:shared:validateFourPositionDeals` reproduces the exhaustive audit.
+
+Normal Settings exposes three configurations: 3 positions / 1 decoy, 3 positions / 2 decoys, and 4 positions / 1 decoy. Changing configuration starts a new game; New Game stays on the current configuration. Each bank draws without replacement from its own saved history. The new bank uses `usedPuzzleIdsByLevel[1]`; the original bank IDs and history and two-decoy history are unchanged. Existing in-progress four-position random games resume exactly as saved, and the bank is used for subsequent games. No save-version change is required.
+
+Normal visual and screen-reader feedback remains count-only. Positional feedback is still debug-only and off by default. Existing scoring par and base points are unchanged.
 
 ## Gameplay
 

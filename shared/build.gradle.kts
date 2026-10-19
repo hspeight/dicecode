@@ -67,3 +67,19 @@ tasks.register<JavaExec>("generateTwoDecoyBank") {
     mainClass.set("com.masterdice.game.GenerateTwoDecoyBankKt")
     args(rootProject.layout.buildDirectory.dir("two-decoy-bank").get().asFile.absolutePath)
 }
+
+// Exhaustive audit of all 376,992 five-die deals for four-position count-only play.
+tasks.register<JavaExec>("validateFourPositionDeals") {
+    dependsOn("desktopTestClasses")
+    classpath = tasks.named<Test>("desktopTest").get().classpath
+    mainClass.set("com.masterdice.game.ValidateFourPositionDealsKt")
+    args(rootProject.layout.buildDirectory.dir("four-position-validation").get().asFile.absolutePath)
+}
+
+// Generates review artifacts without changing published bank rows or their IDs.
+tasks.register<JavaExec>("generateFourPositionBank") {
+    dependsOn("desktopTestClasses")
+    classpath = tasks.named<Test>("desktopTest").get().classpath
+    mainClass.set("com.masterdice.game.GenerateFourPositionBankKt")
+    args(rootProject.layout.buildDirectory.dir("four-position-bank").get().asFile.absolutePath)
+}
