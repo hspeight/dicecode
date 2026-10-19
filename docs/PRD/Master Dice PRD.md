@@ -60,6 +60,12 @@ Exact adaptive minimax over all 60 possible secrets and all 60 legal guesses est
 
 Settings offers one-decoy and two-decoy banks, both with three positions. Changing the level starts a new game; New Game then stays on that level. Selection is random without replacement, with separate saved histories per bank. Existing version-5 saves and original-bank IDs remain valid. Stable engine index 2 is used for the new bank so the experimental four-position index 1 and existing scores are not reassigned. The three-position board is retained with a five-die tray. The scoring par remains the existing target of four; the guaranteed limit is six.
 
+## Four-position, one-decoy validation
+
+The existing experimental four-position level (stable engine index 1, debug selector Level 2) continues to generate random five-die deals. It does not yet have a stored puzzle bank. Exact adaptive count-only minimax validates all 120 ordered secrets and all 120 legal guesses for every one of the 18 realizable five-die similarity structures. Exhaustive enumeration covers all 376,992 distinct five-die sets: 327,600 have exact worst case four guesses, 45,000 have five, and 4,392 have six. All counts include the final winning submission. The universal guaranteed limit is therefore six guesses, replacing the earlier unverified five-guess claim.
+
+The audit and independent reference checks run in the test suite. `:shared:validateFourPositionDeals` reproduces the exhaustive report. The next bank can select 1,000 distinct five-die sets from these proven candidates, with four ordered secret dice and the fifth as decoy. Preserve existing IDs and per-level history keys when that bank is introduced. Both five-die configurations have a bank-wide or universal maximum of six guesses; more secret positions alone do not establish which is harder for a particular deal.
+
 ## Gameplay
 
 The player builds each guess by dragging 3 of the 4 tray dice into columns 1 to 3 of the active row, then taps the enter cell. A guess uses each selected die once, and repeating an earlier ordered guess is allowed.
